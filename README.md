@@ -37,58 +37,6 @@ A high-performance hybrid Android application combining **Kotlin UI**, **C++ ren
 └──────────────────────┴──────────────────────────────────────┘
 ```
 
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Android Studio Hedgehog (2023.1.1) or later
-- Android SDK 35
-- NDK 25.2.9519653
-- CMake 3.22.1
-
-### Build
-
-```bash
-git clone https://github.com/J-mazz/LuminaVS.git
-cd LuminaVS
-./gradlew assembleDebug
-```
-
-### Run Tests
-
-```bash
-# Python tests
-python3 -m pytest app/src/test/python/ -v --cov=app/src/main/python
-
-# Kotlin tests
-./gradlew test koverHtmlReport
-```
-
----
-
-## 📁 Project Structure
-
-```
-LuminaVS/
-├── app/
-│   ├── src/main/
-│   │   ├── java/com/lumina/engine/   # Kotlin source
-│   │   │   ├── LuminaCore.kt         # Data models & ViewModel
-│   │   │   ├── MainActivity.kt       # Entry point
-│   │   │   ├── NativeEngine.kt       # JNI wrapper
-│   │   │   └── PythonBridge.kt       # Chaquopy bridge
-│   │   ├── cpp/                      # Native layer
-│   │   │   ├── engine_structs.h      # Shared memory schema
-│   │   │   └── native-lib.cpp        # Rendering engine
-│   │   └── python/                   # AI layer
-│   │       └── orchestrator.py       # Intent classification
-│   └── src/test/                     # Test suites
-```
-
----
-
 ## 🎯 Render Modes
 
 | Mode | Description |
