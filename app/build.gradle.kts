@@ -27,15 +27,6 @@ android {
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
 
-        // Chaquopy Python Configuration
-        python {
-            pip {
-                install("numpy")
-                install("requests")
-                install("mediapipe")
-            }
-        }
-
         externalNativeBuild {
             cmake {
                 cppFlags += listOf("-std=c++17", "-fexceptions", "-frtti")
@@ -97,6 +88,11 @@ chaquopy {
         version = "3.11"
         pyc {
             src = false
+        }
+        pip {
+            install("numpy")
+            install("requests")
+            install("mediapipe")
         }
     }
 }
