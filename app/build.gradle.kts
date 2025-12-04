@@ -167,31 +167,8 @@ koverReport {
     }
 }
 
-// Download Qwen model at build time
-tasks.register("downloadModel") {
-    val modelDir = file("src/main/assets/models")
-    val modelFile = file("$modelDir/qwen3-1.7b-q4_k_m.gguf")
-
-    outputs.file(modelFile)
-
-    doLast {
-        if (!modelFile.exists()) {
-            modelDir.mkdirs()
-            println("Downloading Qwen 3 1.7B model...")
-            val url = "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf"
-            ant.withGroovyBuilder {
-                "get"("src" to url, "dest" to modelFile, "verbose" to true)
-            }
-            println("Model downloaded to: ${modelFile.absolutePath}")
-        } else {
-            println("Model already exists: ${modelFile.absolutePath}")
-        }
-    }
-}
-
-tasks.named("preBuild") {
-    dependsOn("downloadModel")
-}
+// Model is downloaded at runtime, not at build time
+// See ModelDownloader.kt for runtime download implementation
 
 publishing {
     publications {
