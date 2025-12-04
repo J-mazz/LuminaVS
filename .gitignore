@@ -20,6 +20,7 @@ Thumbs.db
 # Model files (too large for git)
 *.gguf
 *.bin
+app/src/main/assets/models/
 
 # Python
 __pycache__/
