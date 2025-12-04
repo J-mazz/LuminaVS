@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Lumina Color Palette -->
+    <color name="primary">#66D9FF</color>
+    <color name="secondary">#7C4DFF</color>
+    <color name="tertiary">#FF6B9D</color>
+    
+    <!-- Background Gradient -->
+    <color name="background">#0D1B2A</color>
+    <color name="background_mid">#1B263B</color>
+    <color name="background_end">#415A77</color>
+    
+    <!-- Surface Colors -->
+    <color name="surface">#1B263B</color>
+    <color name="surface_variant">#415A77</color>
+    
+    <!-- Text Colors -->
+    <color name="on_primary">#000000</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="on_background">#FFFFFF</color>
+    <color name="on_surface">#FFFFFF</color>
+    
+    <!-- Glassmorphic -->
+    <color name="glass_background">#1AFFFFFF</color>
+    <color name="glass_border">#33FFFFFF</color>
+    
+    <!-- Status Colors -->
+    <color name="status_idle">#4CAF50</color>
+    <color name="status_processing">#2196F3</color>
+    <color name="status_rendering">#FF9800</color>
+    <color name="status_error">#F44336</color>
+</resources>

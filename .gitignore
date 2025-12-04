@@ -1,0 +1,37 @@
+# Built files
+*.iml
+.gradle/
+build/
+local.properties
+
+# IDE
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Native
+.cxx/
+.externalNativeBuild/
+
+# Model files (too large for git)
+*.gguf
+*.bin
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+
+# Chaquopy
+.chaquopy/
+
+# Sensitive
+*.keystore
+*.jks
+google-services.json

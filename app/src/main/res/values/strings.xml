@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Lumina Virtual Studio</string>
+    <string name="action_settings">Settings</string>
+    <string name="input_placeholder">Describe your vision...</string>
+    <string name="send">Send</string>
+    <string name="reset">Reset</string>
+    <string name="capture">Capture</string>
+    <string name="record">Record</string>
+    <string name="stop">Stop</string>
+    <string name="processing">Processing...</string>
+    <string name="ready">Ready</string>
+    <string name="error">Error</string>
+    
+    <!-- Render Modes -->
+    <string name="mode_passthrough">Original</string>
+    <string name="mode_stylized">Stylized</string>
+    <string name="mode_segmented">Segmented</string>
+    <string name="mode_depth_map">Depth Map</string>
+    <string name="mode_normal_map">Normal Map</string>
+    
+    <!-- Effects -->
+    <string name="effect_blur">Blur</string>
+    <string name="effect_bloom">Bloom</string>
+    <string name="effect_color_grade">Color Grade</string>
+    <string name="effect_vignette">Vignette</string>
+    <string name="effect_chromatic_aberration">Chromatic Aberration</string>
+    <string name="effect_noise">Film Grain</string>
+    <string name="effect_sharpen">Sharpen</string>
+</resources>
