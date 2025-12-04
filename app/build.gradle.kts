@@ -169,15 +169,15 @@ koverReport {
 // Download Qwen model at build time
 tasks.register("downloadModel") {
     val modelDir = file("src/main/assets/models")
-    val modelFile = file("$modelDir/qwen2.5-1.5b-instruct-q4_k_m.gguf")
+    val modelFile = file("$modelDir/qwen3-1.7b-q4_k_m.gguf")
 
     outputs.file(modelFile)
 
     doLast {
         if (!modelFile.exists()) {
             modelDir.mkdirs()
-            println("Downloading Qwen 2.5 1.5B model...")
-            val url = "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+            println("Downloading Qwen 3 1.7B model...")
+            val url = "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf"
             ant.withGroovyBuilder {
                 "get"("src" to url, "dest" to modelFile, "verbose" to true)
             }
