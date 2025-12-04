@@ -5,7 +5,6 @@
   <img src="https://img.shields.io/badge/Kotlin-1.9.20-purple?logo=kotlin" alt="Kotlin">
   <img src="https://img.shields.io/badge/C%2B%2B-NDK-blue?logo=cplusplus" alt="C++ NDK">
   <img src="https://img.shields.io/badge/Python-3.11-yellow?logo=python" alt="Python 3.11">
-  <img src="https://img.shields.io/badge/Coverage-79%25-brightgreen" alt="Coverage">
 </p>
 
 A high-performance hybrid Android application combining **Kotlin UI**, **C++ rendering engine**, and **Python AI orchestration** for real-time creative media processing.
