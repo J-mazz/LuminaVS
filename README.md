@@ -124,7 +124,3 @@ The orchestrator understands natural language:
 - **Testing**: JUnit, MockK, pytest, Kover
 
 ---
-
-<p align="center">
-  <b>Lumina Virtual Studio</b> — Where AI meets real-time rendering
-</p>
