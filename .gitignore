@@ -28,6 +28,12 @@ __pycache__/
 *$py.class
 .Python
 *.so
+.coverage
+.pytest_cache/
+
+# Coverage reports
+coverage_reports/
+htmlcov/
 
 # Chaquopy
 .chaquopy/
