@@ -1,7 +1,7 @@
 # Lumina Virtual Studio
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Android-29%2B-green?logo=android" alt="Android 29+">
+  <img src="https://img.shields.io/badge/Android-10%2B-green?logo=android" alt="Android 10+">
   <img src="https://img.shields.io/badge/Kotlin-1.9.20-purple?logo=kotlin" alt="Kotlin">
   <img src="https://img.shields.io/badge/C%2B%2B-NDK-blue?logo=cplusplus" alt="C++ NDK">
   <img src="https://img.shields.io/badge/Python-3.11-yellow?logo=python" alt="Python 3.11">
