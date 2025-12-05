@@ -26,10 +26,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fexceptions -frtti")
 
 set(LUMINA_SOURCES
     native-lib.cpp
+    lumina_engine.cpp
+    renderer_gles.cpp
+    json_parser.cpp
 )
 
 set(LUMINA_HEADERS
     engine_structs.h
+    lumina_engine.h
+    renderer_gles.h
+    json_parser.h
 )
 
 # ============================================================================

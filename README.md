@@ -23,7 +23,7 @@ A high-performance hybrid Android application combining **Kotlin UI**, **C++ ren
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    Kotlin UI Layer                          │
 │              Jetpack Compose + Material 3                   │
@@ -54,7 +54,7 @@ A high-performance hybrid Android application combining **Kotlin UI**, **C++ ren
 
 The orchestrator understands natural language:
 
-```
+```text
 "Make it warmer"           → Adjusts color temperature
 "Add cinematic look"       → Applies film grain + vignette
 "Enhance the shadows"      → Boosts shadow detail
@@ -70,5 +70,19 @@ The orchestrator understands natural language:
 - **AI**: Python 3.11 (Chaquopy), Qwen 3
 - **Build**: Gradle Kotlin DSL, CMake
 - **Testing**: JUnit, MockK, pytest, Kover
+
+---
+
+## ⚙️ Python Orchestrator Configuration
+
+`OrchestratorConfig` (in `app/src/main/python/config.py`) lets you tune routing and resource usage:
+
+- `rule_confidence_skip_llm` (default 0.9): if rule-based confidence meets/exceeds this, LLM is skipped.
+- `max_llm_tokens` (default 96): cap for generation to stay mobile-friendly.
+- `max_normalized_length` (default 512): preprocess cap; inputs beyond this are truncated and flagged.
+- `default_effect_intensity` (default 0.5): used when user asks for intensity without a number.
+- `telemetry_enabled` (default True): per-node DAG timing stored in `last_context["telemetry"]`.
+
+
 
 ---
