@@ -3,12 +3,37 @@
 .gradle/
 build/
 app/bin/
-local.properties
+.vscode/
+.vs/
+.history/
+.fleet/
+.gradle/
 
+# Workspace state
+.DS_Store
+Thumbs.db
+*.orig
+*.rej
+
+# Repo metadata
+/.github/
 # IDE
 .idea/
-*.swp
-*~
+
+# Node / JS (if any tooling added later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build/outputs
+.vs-code/
+.github
+/app/build/
+/build/
+app/build/
+**/build/
 
 # OS
 .DS_Store
@@ -31,6 +56,19 @@ __pycache__/
 *.so
 .coverage
 .pytest_cache/
+.venv/
+.venv312/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-wheel-metadata/
+pip-wheelhouse/
+*.egg-info/
+dist/
+sdist/
+wheelhouse/
 
 # Coverage reports
 coverage_reports/
