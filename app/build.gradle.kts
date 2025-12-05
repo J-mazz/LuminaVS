@@ -91,7 +91,6 @@ chaquopy {
         pip {
             install("numpy")
             install("requests")
-            install("mediapipe")
         }
     }
 }
