@@ -3,7 +3,6 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.chaquo.python")
     id("org.jetbrains.kotlinx.kover") version "0.7.5"
-    `maven-publish`
 }
 
 android {
@@ -165,34 +164,3 @@ koverReport {
 
 // Model is downloaded at runtime, not at build time
 // See ModelDownloader.kt for runtime download implementation
-
-publishing {
-    publications {
-        create<MavenPublication>("release") {
-            groupId = "com.lumina"
-            artifactId = "engine"
-            version = "1.0.0"
-
-            afterEvaluate {
-                from(components["release"])
-            }
-
-            pom {
-                name.set("Lumina Virtual Studio")
-                description.set("AI-powered camera app with real-time rendering")
-                url.set("https://github.com/J-mazz/LuminaVS")
-            }
-        }
-    }
-
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/J-mazz/LuminaVS")
-            credentials {
-                username = System.getenv("GITHUB_ACTOR") ?: ""
-                password = System.getenv("GITHUB_TOKEN") ?: ""
-            }
-        }
-    }
-}

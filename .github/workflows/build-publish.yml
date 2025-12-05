@@ -115,11 +115,6 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
-      - name: Publish to GitHub Packages
-        run: ./gradlew publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
