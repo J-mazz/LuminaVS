@@ -9,6 +9,17 @@ android {
     namespace = "com.lumina.engine"
     compileSdk = 35
 
+    ndkVersion = "26.3.11579264"
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.lumina.engine"
         minSdk = 29
@@ -65,13 +76,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.5"
-    }
-
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
+        kotlinCompilerExtensionVersion = "1.5.15"
     }
 
     externalNativeBuild {
@@ -84,13 +89,18 @@ android {
 
 chaquopy {
     defaultConfig {
+        // Use supported Chaquopy runtime Python 3.11
         version = "3.11"
+        // Use host python3.12 for building wheels so stdlib cgi is present
+        buildPython = listOf("python3.12")
         pyc {
             src = false
         }
         pip {
             install("numpy")
             install("requests")
+            // Provides the removed cgi module when build Python is newer (3.13+)
+            install("legacy-cgi")
         }
     }
 }
@@ -103,15 +113,22 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.8.1")
 
     // Jetpack Compose
-    implementation(platform("androidx.compose:compose-bom:2023.10.01"))
+    implementation(platform("androidx.compose:compose-bom:2024.09.02"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.animation:animation")
+    implementation("androidx.compose.material:material-icons-extended")
 
     // Native Libraries (Prefab)
     implementation("com.google.oboe:oboe:1.7.0")
+
+    // CameraX
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+    implementation("androidx.camera:camera-video:1.3.4")
 
     // JSON Serialization
     implementation("com.google.code.gson:gson:2.10.1")
