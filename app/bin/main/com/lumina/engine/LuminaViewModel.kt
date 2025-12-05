@@ -9,12 +9,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.lumina.engine.settings.InMemorySettingsRepository
+import com.lumina.engine.settings.SettingsDataSource
+import com.lumina.engine.settings.SettingsRepository
 
 /**
  * LuminaViewModel manages application state and bridges UI, AI, and Render layers.
  */
 class LuminaViewModel(
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val settingsRepository: SettingsDataSource = defaultSettingsRepository()
 ) : ViewModel() {
 
     private val _luminaState = MutableStateFlow(LuminaState())
@@ -34,6 +38,15 @@ class LuminaViewModel(
 
     var nativeBridge: NativeBridge? = null
     var pythonOrchestrator: PythonOrchestrator? = null
+
+    init {
+        // Load persisted settings
+        viewModelScope.launch(ioDispatcher) {
+            settingsRepository.dynamicTheme.collect { enabled ->
+                _dynamicTheme.value = enabled
+            }
+        }
+    }
 
     fun processUserInput(input: String) {
         if (input.isBlank()) return
@@ -113,6 +126,16 @@ class LuminaViewModel(
 
     fun setDynamicTheme(enabled: Boolean) {
         _dynamicTheme.value = enabled
+        viewModelScope.launch(ioDispatcher) {
+            settingsRepository.setDynamicTheme(enabled)
+        }
+    }
+
+    companion object {
+        private fun defaultSettingsRepository(): SettingsDataSource {
+            return runCatching { SettingsRepository(LuminaApplication.instance) }
+                .getOrElse { InMemorySettingsRepository() }
+        }
     }
 
     fun refreshTiming() {

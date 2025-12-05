@@ -6,8 +6,8 @@
   },
   "ai": {
     "model": {
-      "name": "qwen-2.5-1.5b-instruct",
-      "file": "qwen-2.5-1.5b-instruct-q4_k_m.gguf",
+      "name": "qwen3-1.7b-instruct",
+      "file": "qwen3-1.7b-instruct-q4_k_m.gguf",
       "context_length": 2048,
       "temperature": 0.1,
       "top_p": 0.9
