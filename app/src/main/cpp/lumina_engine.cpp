@@ -230,10 +230,6 @@ void LuminaEngineCore::setRenderMode(int mode) {
 void LuminaEngineCore::setSurfaceWindow(ANativeWindow* window) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    if (window) {
-        ANativeWindow_acquire(window);
-    }
-
     if (nativeWindow_) {
         ANativeWindow_release(nativeWindow_);
     }
@@ -345,7 +341,7 @@ bool LuminaEngineCore::initializeGLES() {
 
     const EGLint attribs[] = {
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT | EGL_PBUFFER_BIT,
         EGL_BLUE_SIZE, 8,
         EGL_GREEN_SIZE, 8,
         EGL_RED_SIZE, 8,
@@ -368,6 +364,25 @@ bool LuminaEngineCore::initializeGLES() {
         return false;
     }
 
+    // Create a tiny pbuffer so we can bind a context before a window surface exists
+    const EGLint pbufferAttribs[] = {
+        EGL_WIDTH, 1,
+        EGL_HEIGHT, 1,
+        EGL_NONE
+    };
+    eglSurface_ = eglCreatePbufferSurface(eglDisplay_, eglConfig_, pbufferAttribs);
+    if (eglSurface_ == EGL_NO_SURFACE) {
+        LOGE("eglCreatePbufferSurface failed: 0x%x", eglGetError());
+        return false;
+    }
+
+    if (!eglMakeCurrent(eglDisplay_, eglSurface_, eglSurface_, eglContext_)) {
+        LOGE("eglMakeCurrent (pbuffer) failed: 0x%x", eglGetError());
+        return false;
+    }
+
+    surfaceWidth_ = 1;
+    surfaceHeight_ = 1;
     eglSwapInterval(eglDisplay_, 1);
     return true;
 }

@@ -102,6 +102,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        cameraController.shutdown()
+        nativeEngine.setSurface(null)
+        Log.i(TAG, "Paused - camera shut down and surface released")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Camera will be rebound by CameraPreviewArea lifecycle observer
+        Log.i(TAG, "Resumed - waiting for UI to rebind camera")
+    }
+
     private fun ensurePermissions() {
         if (hasAllPermissions()) {
             onPermissionsGranted()
@@ -162,7 +175,8 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         Log.i(TAG, "Shutting down Lumina Virtual Studio")
-        
+
+        cameraController.shutdown()
         pythonBridge.shutdown()
         nativeEngine.shutdown()
     }

@@ -44,7 +44,7 @@ class CameraController(private val context: Context) {
     private var activeRecording: Recording? = null
     private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
-    fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
+    fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView): Result<Unit> {
         val provider = cameraProviderFuture.get()
 
         val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
@@ -69,7 +69,7 @@ class CameraController(private val context: Context) {
 
         videoCapture = VideoCapture.withOutput(recorder)
 
-        try {
+        return try {
             provider.unbindAll()
             camera = provider.bindToLifecycle(
                 lifecycleOwner,
@@ -78,18 +78,20 @@ class CameraController(private val context: Context) {
                 imageCapture,
                 videoCapture
             )
+            Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to bind camera use cases: ${e.message}")
+            Log.e(TAG, "Failed to bind camera use cases: ${e.message}", e)
+            Result.failure(e)
         }
     }
 
-    fun switchCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView) {
+    fun switchCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView): Result<Unit> {
         cameraSelector = if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
             CameraSelector.DEFAULT_FRONT_CAMERA
         } else {
             CameraSelector.DEFAULT_BACK_CAMERA
         }
-        startCamera(lifecycleOwner, previewView)
+        return startCamera(lifecycleOwner, previewView)
     }
 
     fun takePhoto(onResult: (Result<String>) -> Unit) {
