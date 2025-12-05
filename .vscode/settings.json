@@ -1,4 +1,0 @@
-{
-    "java.gradle.buildServer.enabled": "off",
-    "java.configuration.updateBuildConfiguration": "interactive"
-}
