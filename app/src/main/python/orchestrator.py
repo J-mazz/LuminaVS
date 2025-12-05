@@ -27,7 +27,7 @@ from classifiers import rule_based_classify
 from config import OrchestratorConfig
 
 # Shared model filename for consistency with Kotlin downloader
-MODEL_FILENAME = "qwen-2.5-1.5b-instruct-q4_k_m.gguf"
+MODEL_FILENAME = "qwen3-1.7b-instruct-q4_k_m.gguf"
 
 # Lazy import for llama-cpp to avoid hard dependency during tests
 try:

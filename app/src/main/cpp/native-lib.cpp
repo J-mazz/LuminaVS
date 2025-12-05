@@ -30,6 +30,16 @@ Java_com_lumina_engine_NativeEngine_nativeShutdown(
 }
 
 JNIEXPORT jboolean JNICALL
+Java_com_lumina_engine_NativeEngine_nativeInit(
+    JNIEnv* env,
+    jobject /* this */,
+    jobject assetManager
+) {
+    bool ok = LuminaEngineCore::getInstance().initialize(env, assetManager);
+    return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
 Java_com_lumina_engine_NativeEngine_nativeUpdateState(
     JNIEnv* env,
     jobject /* this */,
