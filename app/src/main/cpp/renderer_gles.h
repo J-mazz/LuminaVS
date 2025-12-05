@@ -27,6 +27,12 @@ private:
     GLuint glVao_ = 0;
     GLint uTimeLoc_ = -1;
     GLint uIntensityLoc_ = -1;
+    GLint uEffectTypeLoc_ = -1;
+    GLint uTintLoc_ = -1;
+    GLint uCenterLoc_ = -1;
+    GLint uScaleLoc_ = -1;
+    GLint uParamsLoc_ = -1;
+    GLint uResolutionLoc_ = -1;
     bool pipelineReady_ = false;
     int surfaceWidth_ = 0;
     int surfaceHeight_ = 0;

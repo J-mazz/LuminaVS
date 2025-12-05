@@ -43,6 +43,36 @@ fun CameraPreviewArea(
 
     LaunchedEffect(Unit) {
         cameraController.startCamera(lifecycleOwner, previewView)
+            .onFailure {
+                lastMessage = "Camera error: ${it.message ?: "unknown"}";
+                onMessage(lastMessage, true)
+            }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_RESUME -> {
+                    cameraController.startCamera(lifecycleOwner, previewView)
+                        .onFailure {
+                            lastMessage = "Camera error: ${it.message ?: "unknown"}";
+                            onMessage(lastMessage, true)
+                        }
+                }
+                androidx.lifecycle.Lifecycle.Event.ON_PAUSE,
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> {
+                    cameraController.shutdown()
+                }
+                else -> Unit
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            cameraController.shutdown()
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -126,8 +156,14 @@ fun CameraPreviewArea(
 
             FilledTonalButton(onClick = {
                 cameraController.switchCamera(lifecycleOwner, previewView)
-                lastMessage = "Switched camera"
-                onMessage(lastMessage, false)
+                    .onSuccess {
+                        lastMessage = "Switched camera"
+                        onMessage(lastMessage, false)
+                    }
+                    .onFailure {
+                        lastMessage = "Camera switch failed: ${it.message ?: "unknown"}"
+                        onMessage(lastMessage, true)
+                    }
             }) {
                 Icon(imageVector = Icons.Default.Cameraswitch, contentDescription = "Switch camera")
                 Spacer(Modifier.width(8.dp))

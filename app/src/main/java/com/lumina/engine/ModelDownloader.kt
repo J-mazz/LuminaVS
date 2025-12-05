@@ -108,8 +108,9 @@ class ModelDownloader(private val context: Context) {
     }
 
     companion object {
-        private const val MODEL_FILENAME = "qwen3-1.7b-q4_k_m.gguf"
-        private const val MODEL_URL = "https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf"
+        // Keep in sync with orchestrator.py MODEL_FILENAME
+        private const val MODEL_FILENAME = "qwen-2.5-1.5b-instruct-q4_k_m.gguf"
+        private const val MODEL_URL = "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf"
         private const val MIN_MODEL_SIZE = 1_000_000_000L // ~1GB minimum
     }
 }

@@ -31,9 +31,21 @@ bool GLRenderer::render(const lumina::LuminaState& state) {
     if (!ensurePipeline()) return false;
 
     glUseProgram(glProgram_);
-    float intensity = (state.activeEffectCount > 0) ? state.effects[0].intensity : 1.0f;
+    const lumina::EffectParams* activeEffect = (state.activeEffectCount > 0) ? &state.effects[0] : nullptr;
+    float intensity = activeEffect ? activeEffect->intensity : 1.0f;
+    int effectType = activeEffect ? static_cast<int>(activeEffect->type) : 0;
+
     if (uTimeLoc_ >= 0) glUniform1f(uTimeLoc_, state.timing.totalTime);
     if (uIntensityLoc_ >= 0) glUniform1f(uIntensityLoc_, intensity);
+    if (uEffectTypeLoc_ >= 0) glUniform1i(uEffectTypeLoc_, effectType);
+    if (uTintLoc_ >= 0 && activeEffect) {
+        const auto& c = activeEffect->tintColor;
+        glUniform4f(uTintLoc_, c.r, c.g, c.b, c.a);
+    }
+    if (uCenterLoc_ >= 0 && activeEffect) glUniform2f(uCenterLoc_, activeEffect->center.x, activeEffect->center.y);
+    if (uScaleLoc_ >= 0 && activeEffect) glUniform2f(uScaleLoc_, activeEffect->scale.x, activeEffect->scale.y);
+    if (uParamsLoc_ >= 0 && activeEffect) glUniform2f(uParamsLoc_, activeEffect->param1, activeEffect->param2);
+    if (uResolutionLoc_ >= 0) glUniform2f(uResolutionLoc_, static_cast<float>(surfaceWidth_), static_cast<float>(surfaceHeight_));
 
     glBindVertexArray(glVao_);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -69,14 +81,67 @@ in vec2 vUv;
 out vec4 fragColor;
 uniform float uTime;
 uniform float uIntensity;
+uniform int uEffectType;
+uniform vec4 uTintColor;
+uniform vec2 uEffectCenter;
+uniform vec2 uEffectScale;
+uniform vec2 uEffectParams;
+uniform vec2 uResolution;
+
+float hash21(vec2 p){
+    p = fract(p * vec2(234.34, 123.45));
+    p += dot(p, p + 34.345);
+    return fract(p.x * p.y);
+}
+
 void main(){
-    vec3 base = mix(vec3(0.07, 0.11, 0.18), vec3(0.10, 0.20, 0.35), vUv.y);
-    float ripple = 0.04 * sin(uTime * 1.5 + vUv.x * 6.28318);
-    float vignette = smoothstep(0.9, 0.4, length(vUv - 0.5));
+    vec2 uv = vUv;
+    vec2 centered = (uv - uEffectCenter) * uEffectScale;
+    float aspect = uResolution.x / max(uResolution.y, 1.0);
+    centered.x *= aspect;
+
+    vec3 base = mix(vec3(0.07, 0.11, 0.18), vec3(0.10, 0.20, 0.35), uv.y);
+    float ripple = 0.04 * sin(uTime * 1.5 + uv.x * 6.28318);
     base += ripple;
-    base *= mix(0.85, 1.15, vignette);
-    base *= (0.8 + uIntensity * 0.25);
-    fragColor = vec4(base, 1.0);
+
+    float vignette = smoothstep(0.95, 0.45, length(centered));
+    base = mix(base * 0.9, base, vignette);
+
+    vec3 color = base;
+
+    if (uEffectType == 1) { // BLUR-ish soften
+        float blurAmt = clamp(uIntensity, 0.0, 1.5) * 0.35;
+        color = mix(color, vec3(dot(color, vec3(0.333))), blurAmt);
+    } else if (uEffectType == 2) { // BLOOM halo
+        float halo = exp(-dot(centered, centered) * (4.0 + uEffectParams.x * 2.0));
+        color += halo * uIntensity * 0.6;
+    } else if (uEffectType == 3) { // COLOR_GRADE tint
+        color = mix(color, uTintColor.rgb, clamp(uIntensity, 0.0, 1.5));
+        color *= 1.0 + uEffectParams.x * 0.1;
+    } else if (uEffectType == 4) { // VIGNETTE
+        float vig = smoothstep(0.8, 0.2, length(centered));
+        color *= mix(1.0, vig, clamp(uIntensity, 0.0, 1.5));
+    } else if (uEffectType == 5) { // CHROMATIC_ABERRATION stylized
+        float offset = 0.002 + 0.004 * uIntensity;
+        vec2 dir = normalize(centered + 0.0001) * offset;
+        vec3 ca = vec3(
+            base.r + ripple,
+            base.g,
+            base.b - ripple
+        );
+        ca += vec3(hash21(uv + dir), hash21(uv - dir), hash21(uv + dir.yx)) * 0.02 * uIntensity;
+        color = mix(color, ca, 0.5);
+    } else if (uEffectType == 6) { // NOISE
+        float n = hash21(uv * uResolution + uTime * 0.5);
+        float grain = (n - 0.5) * 0.18 * uIntensity;
+        color += grain;
+    } else if (uEffectType == 7) { // SHARPEN/contrast
+        float c = dot(color, vec3(0.333));
+        color = mix(vec3(c), color * 1.2, clamp(0.5 + uIntensity * 0.5, 0.0, 1.5));
+    }
+
+    color *= (0.8 + uIntensity * 0.25);
+    fragColor = vec4(color, 1.0);
 })";
 
     GLuint vs = 0, fs = 0;
@@ -119,6 +184,12 @@ void main(){
 
     uTimeLoc_ = glGetUniformLocation(glProgram_, "uTime");
     uIntensityLoc_ = glGetUniformLocation(glProgram_, "uIntensity");
+    uEffectTypeLoc_ = glGetUniformLocation(glProgram_, "uEffectType");
+    uTintLoc_ = glGetUniformLocation(glProgram_, "uTintColor");
+    uCenterLoc_ = glGetUniformLocation(glProgram_, "uEffectCenter");
+    uScaleLoc_ = glGetUniformLocation(glProgram_, "uEffectScale");
+    uParamsLoc_ = glGetUniformLocation(glProgram_, "uEffectParams");
+    uResolutionLoc_ = glGetUniformLocation(glProgram_, "uResolution");
 
     pipelineReady_ = true;
     return true;
@@ -145,6 +216,6 @@ void GLRenderer::destroyPipeline() {
     if (glVbo_) { glDeleteBuffers(1, &glVbo_); glVbo_ = 0; }
     if (glVao_) { glDeleteVertexArrays(1, &glVao_); glVao_ = 0; }
     if (glProgram_) { glDeleteProgram(glProgram_); glProgram_ = 0; }
-    uTimeLoc_ = uIntensityLoc_ = -1;
+    uTimeLoc_ = uIntensityLoc_ = uEffectTypeLoc_ = uTintLoc_ = uCenterLoc_ = uScaleLoc_ = uParamsLoc_ = uResolutionLoc_ = -1;
     pipelineReady_ = false;
 }
