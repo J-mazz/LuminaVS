@@ -1,6 +1,7 @@
 #include "renderer_gles.h"
 
 #include <android/log.h>
+#include <GLES2/gl2ext.h>
 
 #define LOG_TAG "LuminaRenderer"
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
@@ -29,6 +30,7 @@ bool GLRenderer::render(const lumina::LuminaState& state) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     if (!ensurePipeline()) return false;
+    if (!ensureExternalTexture()) return false;
 
     glUseProgram(glProgram_);
     const lumina::EffectParams* activeEffect = (state.activeEffectCount > 0) ? &state.effects[0] : nullptr;
@@ -46,6 +48,10 @@ bool GLRenderer::render(const lumina::LuminaState& state) {
     if (uScaleLoc_ >= 0 && activeEffect) glUniform2f(uScaleLoc_, activeEffect->scale.x, activeEffect->scale.y);
     if (uParamsLoc_ >= 0 && activeEffect) glUniform2f(uParamsLoc_, activeEffect->param1, activeEffect->param2);
     if (uResolutionLoc_ >= 0) glUniform2f(uResolutionLoc_, static_cast<float>(surfaceWidth_), static_cast<float>(surfaceHeight_));
+    if (uCameraTexLoc_ >= 0) glUniform1i(uCameraTexLoc_, 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, externalTex_);
 
     glBindVertexArray(glVao_);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -76,6 +82,7 @@ void main(){
 })";
 
     const char* fsSrc = R"(#version 300 es
+#extension GL_OES_EGL_image_external_essl3 : require
 precision mediump float;
 in vec2 vUv;
 out vec4 fragColor;
@@ -87,6 +94,7 @@ uniform vec2 uEffectCenter;
 uniform vec2 uEffectScale;
 uniform vec2 uEffectParams;
 uniform vec2 uResolution;
+uniform samplerExternalOES uCameraTex;
 
 float hash21(vec2 p){
     p = fract(p * vec2(234.34, 123.45));
@@ -100,7 +108,7 @@ void main(){
     float aspect = uResolution.x / max(uResolution.y, 1.0);
     centered.x *= aspect;
 
-    vec3 base = mix(vec3(0.07, 0.11, 0.18), vec3(0.10, 0.20, 0.35), uv.y);
+    vec3 base = texture(uCameraTex, uv).rgb;
     float ripple = 0.04 * sin(uTime * 1.5 + uv.x * 6.28318);
     base += ripple;
 
@@ -109,7 +117,7 @@ void main(){
 
     vec3 color = base;
 
-    if (uEffectType == 1) { // BLUR-ish soften
+    if (uEffectType == 1) { // BLUR-ish soften (cheap)
         float blurAmt = clamp(uIntensity, 0.0, 1.5) * 0.35;
         color = mix(color, vec3(dot(color, vec3(0.333))), blurAmt);
     } else if (uEffectType == 2) { // BLOOM halo
@@ -190,6 +198,7 @@ void main(){
     uScaleLoc_ = glGetUniformLocation(glProgram_, "uEffectScale");
     uParamsLoc_ = glGetUniformLocation(glProgram_, "uEffectParams");
     uResolutionLoc_ = glGetUniformLocation(glProgram_, "uResolution");
+    uCameraTexLoc_ = glGetUniformLocation(glProgram_, "uCameraTex");
 
     pipelineReady_ = true;
     return true;
@@ -216,6 +225,20 @@ void GLRenderer::destroyPipeline() {
     if (glVbo_) { glDeleteBuffers(1, &glVbo_); glVbo_ = 0; }
     if (glVao_) { glDeleteVertexArrays(1, &glVao_); glVao_ = 0; }
     if (glProgram_) { glDeleteProgram(glProgram_); glProgram_ = 0; }
-    uTimeLoc_ = uIntensityLoc_ = uEffectTypeLoc_ = uTintLoc_ = uCenterLoc_ = uScaleLoc_ = uParamsLoc_ = uResolutionLoc_ = -1;
+    if (externalTex_) { glDeleteTextures(1, &externalTex_); externalTex_ = 0; }
+    uTimeLoc_ = uIntensityLoc_ = uEffectTypeLoc_ = uTintLoc_ = uCenterLoc_ = uScaleLoc_ = uParamsLoc_ = uResolutionLoc_ = uCameraTexLoc_ = -1;
     pipelineReady_ = false;
+}
+
+bool GLRenderer::ensureExternalTexture() {
+    if (externalTex_ != 0) return true;
+
+    glGenTextures(1, &externalTex_);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, externalTex_);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
+    return externalTex_ != 0;
 }

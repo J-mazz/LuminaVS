@@ -111,6 +111,14 @@ Java_com_lumina_engine_NativeEngine_nativeGetVersion(
     return env->NewStringUTF(version);
 }
 
+JNIEXPORT jint JNICALL
+Java_com_lumina_engine_NativeEngine_nativeGetVideoTextureId(
+    JNIEnv* /* env */,
+    jobject /* this */
+) {
+    return static_cast<jint>(LuminaEngineCore::getInstance().getVideoTextureId());
+}
+
 // JNI_OnLoad - Called when the library is loaded
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* /* reserved */) {
     LOGI("Lumina Engine JNI loaded");

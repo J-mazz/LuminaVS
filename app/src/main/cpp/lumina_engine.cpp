@@ -296,6 +296,10 @@ const lumina::LuminaState* LuminaEngineCore::getState() const {
     return state_.get();
 }
 
+GLuint LuminaEngineCore::getVideoTextureId() const {
+    return glRenderer_ ? glRenderer_->getInputTextureId() : 0;
+}
+
 bool LuminaEngineCore::initializeGraphics() {
     LOGI("Initializing graphics subsystem");
 
