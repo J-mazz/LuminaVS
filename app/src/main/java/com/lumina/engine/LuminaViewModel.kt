@@ -155,6 +155,7 @@ interface NativeBridge {
     fun updateState(jsonState: String)
     fun setRenderMode(mode: Int)
     fun getFrameTiming(): FrameTiming
+    fun getVideoTextureId(): Int
     fun shutdown()
 }
 

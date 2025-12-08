@@ -8,10 +8,12 @@
 #include <memory>
 #include <mutex>
 #include <EGL/egl.h>
+#include <GLES3/gl3.h>
 
 #include "engine_structs.h"
 
 class GLRenderer;
+class VulkanRenderer;
 
 class LuminaEngineCore {
 public:
@@ -25,6 +27,9 @@ public:
     void setSurfaceWindow(ANativeWindow* window);
     void renderFrame();
     GLuint getVideoTextureId() const;
+
+    // Upload an RGBA8 camera frame (e.g., after AHardwareBuffer readback) into the active renderer.
+    void uploadCameraFrame(const uint8_t* data, size_t size, uint32_t width, uint32_t height);
 
     lumina::FrameTiming getFrameTiming() const;
     const lumina::LuminaState* getState() const;
@@ -64,6 +69,7 @@ private:
 
     // Rendering
     std::unique_ptr<class GLRenderer> glRenderer_;
+    std::unique_ptr<class VulkanRenderer> vkRenderer_;
 
     // Timing
     std::chrono::high_resolution_clock::time_point lastFrameTime_ =

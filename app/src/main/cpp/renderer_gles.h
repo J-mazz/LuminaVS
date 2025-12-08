@@ -16,7 +16,7 @@ public:
     bool render(const lumina::LuminaState& state);
     void onContextLost();
     void destroy();
-    GLuint getInputTextureId() const { return externalTex_; }
+    GLuint getInputTextureId();
 
 private:
     bool ensurePipeline();

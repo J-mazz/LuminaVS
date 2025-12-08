@@ -1,11 +1,12 @@
 package com.lumina.engine.ui.components
 
+import android.graphics.SurfaceTexture
+import android.view.Surface
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.FiberManualRecord
@@ -15,17 +16,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.lumina.engine.CameraController
+import com.lumina.engine.NativeEngine
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CameraPreviewArea(
     cameraController: CameraController,
+    nativeEngine: NativeEngine? = null,
     onMessage: (String, Boolean) -> Unit,
     onVideoSaved: (String) -> Unit = {}
 ) {
@@ -33,6 +40,13 @@ fun CameraPreviewArea(
     val context = LocalContext.current
     var isRecording by remember { mutableStateOf(false) }
     var lastMessage by remember { mutableStateOf("") }
+    var previewSize by remember { mutableStateOf(IntSize.Zero) }
+    var surfaceTexture by remember { mutableStateOf<SurfaceTexture?>(null) }
+    var cameraSurface by remember { mutableStateOf<Surface?>(null) }
+    val textureId = remember(nativeEngine) { nativeEngine?.getVideoTextureId() ?: 0 }
+    val activeSurface = remember(cameraSurface, isRecording) {
+        if (isRecording && cameraSurface != null) cameraSurface else null
+    }
 
     val previewView = remember {
         PreviewView(context).apply {
@@ -41,19 +55,38 @@ fun CameraPreviewArea(
         }
     }
 
-    LaunchedEffect(Unit) {
-        cameraController.startCamera(lifecycleOwner, previewView)
+    LaunchedEffect(textureId, previewSize) {
+        if (textureId != 0 && previewSize != IntSize.Zero) {
+            surfaceTexture?.release()
+            cameraSurface?.release()
+
+            val st = SurfaceTexture(textureId).apply {
+                setDefaultBufferSize(previewSize.width, previewSize.height)
+            }
+            val surface = Surface(st)
+            surfaceTexture = st
+            cameraSurface = surface
+        } else if (cameraSurface != null && textureId == 0) {
+            cameraSurface?.release()
+            surfaceTexture?.release()
+            cameraSurface = null
+            surfaceTexture = null
+        }
+    }
+
+    LaunchedEffect(activeSurface) {
+        cameraController.startCamera(lifecycleOwner, previewView, activeSurface)
             .onFailure {
                 lastMessage = "Camera error: ${it.message ?: "unknown"}";
                 onMessage(lastMessage, true)
             }
     }
 
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, activeSurface) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             when (event) {
                 androidx.lifecycle.Lifecycle.Event.ON_RESUME -> {
-                    cameraController.startCamera(lifecycleOwner, previewView)
+                    cameraController.startCamera(lifecycleOwner, previewView, activeSurface)
                         .onFailure {
                             lastMessage = "Camera error: ${it.message ?: "unknown"}";
                             onMessage(lastMessage, true)
@@ -72,6 +105,8 @@ fun CameraPreviewArea(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             cameraController.shutdown()
+            cameraSurface?.release()
+            surfaceTexture?.release()
         }
     }
 
@@ -80,6 +115,7 @@ fun CameraPreviewArea(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
+                .onSizeChanged { previewSize = it }
                 .pointerInput(Unit) {
                     detectTransformGestures { _, _, zoomChange, _ ->
                         val current = cameraController.currentZoomRatio()
@@ -155,7 +191,7 @@ fun CameraPreviewArea(
             }
 
             FilledTonalButton(onClick = {
-                cameraController.switchCamera(lifecycleOwner, previewView)
+                cameraController.switchCamera(lifecycleOwner, previewView, activeSurface)
                     .onSuccess {
                         lastMessage = "Switched camera"
                         onMessage(lastMessage, false)

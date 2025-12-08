@@ -68,6 +68,11 @@ void GLRenderer::destroy() {
     destroyPipeline();
 }
 
+GLuint GLRenderer::getInputTextureId() {
+    ensureExternalTexture();
+    return externalTex_;
+}
+
 bool GLRenderer::ensurePipeline() {
     if (pipelineReady_) return true;
 

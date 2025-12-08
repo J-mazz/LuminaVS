@@ -62,12 +62,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
 
     buildFeatures {
@@ -76,7 +76,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
+        kotlinCompilerExtensionVersion = "1.6.11"
     }
 
     externalNativeBuild {
@@ -89,31 +89,32 @@ android {
 
 chaquopy {
     defaultConfig {
-        // Use supported Chaquopy runtime Python 3.11
-        version = "3.11"
-        // Use host python3.12 for building wheels so stdlib cgi is present
-        buildPython = listOf("python3.12")
-        pyc {
-            src = false
-        }
+        // Target Python 3.13 runtime (supported by Chaquopy 17.0)
+        version = "3.13"
+        // Build wheels with the local 3.13 venv for consistency
+        buildPython = listOf("${rootDir}/.venv313/bin/python")
+        pyc { src = false }
         pip {
-            install("numpy")
-            install("requests")
-            // Provides the removed cgi module when build Python is newer (3.13+)
+            // Only required deps; numpy omitted to avoid native build overhead
+            install("requests==2.31.0")
             install("legacy-cgi")
         }
     }
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 dependencies {
     // Core Android
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-    implementation("androidx.activity:activity-compose:1.8.1")
+    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.activity:activity-compose:1.9.2")
 
     // Jetpack Compose
-    implementation(platform("androidx.compose:compose-bom:2024.09.02"))
+    implementation(platform("androidx.compose:compose-bom:2024.12.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -131,18 +132,18 @@ dependencies {
     implementation("androidx.camera:camera-video:1.3.4")
 
     // JSON Serialization
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
     // Settings persistence
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("app.cash.turbine:turbine:1.0.0")
     testImplementation("com.google.truth:truth:1.1.5")
@@ -151,7 +152,7 @@ dependencies {
     
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.01"))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.12.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

@@ -8,6 +8,7 @@
 
 #include "json_parser.h"
 #include "renderer_gles.h"
+#include "renderer_vulkan.h"
 
 #define LOG_TAG "LuminaEngine"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -243,12 +244,20 @@ void LuminaEngineCore::setSurfaceWindow(ANativeWindow* window) {
         surfaceWidth_ = width;
         surfaceHeight_ = height;
         LOGI("Surface set: %dx%d", width, height);
-        recreateWindowSurface();
+        if (useVulkan_) {
+            if (vkRenderer_) vkRenderer_->recreate(window);
+        } else {
+            recreateWindowSurface();
+        }
     } else {
-        if (glRenderer_) glRenderer_->onContextLost();
-        if (eglSurface_ != EGL_NO_SURFACE && eglDisplay_ != EGL_NO_DISPLAY) {
-            eglDestroySurface(eglDisplay_, eglSurface_);
-            eglSurface_ = EGL_NO_SURFACE;
+        if (useVulkan_) {
+            if (vkRenderer_) vkRenderer_->destroy();
+        } else {
+            if (glRenderer_) glRenderer_->onContextLost();
+            if (eglSurface_ != EGL_NO_SURFACE && eglDisplay_ != EGL_NO_DISPLAY) {
+                eglDestroySurface(eglDisplay_, eglSurface_);
+                eglSurface_ = EGL_NO_SURFACE;
+            }
         }
         surfaceWidth_ = surfaceHeight_ = 0;
     }
@@ -300,33 +309,47 @@ GLuint LuminaEngineCore::getVideoTextureId() const {
     return glRenderer_ ? glRenderer_->getInputTextureId() : 0;
 }
 
+void LuminaEngineCore::uploadCameraFrame(const uint8_t* data, size_t size, uint32_t width, uint32_t height) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!initialized_ || !data || size == 0 || width == 0 || height == 0) return;
+
+    if (useVulkan_) {
+        if (vkRenderer_) vkRenderer_->uploadTexture(data, size, width, height);
+    } else {
+        // GLES path uses external textures; no CPU upload here.
+    }
+}
+
 bool LuminaEngineCore::initializeGraphics() {
     LOGI("Initializing graphics subsystem");
 
+    // Try Vulkan first if available, fall back to GLES3.
 #ifdef LUMINA_USE_VULKAN
     if (initializeVulkan()) {
-        LOGI("Vulkan initialized");
         useVulkan_ = true;
+        LOGI("Vulkan initialized");
         return true;
     }
-    LOGW("Vulkan init failed, falling back to GLES");
+    LOGW("Vulkan unavailable, falling back to GLES3");
 #endif
 
-#ifdef LUMINA_USE_GLES3
     if (initializeGLES()) {
-        LOGI("GLES 3 initialized");
         useVulkan_ = false;
+        LOGI("GLES 3 initialized");
         return true;
     }
-#endif
 
-    LOGE("No graphics API available");
+    LOGE("Failed to initialize any graphics API");
     return false;
 }
 
 bool LuminaEngineCore::initializeVulkan() {
-    LOGD("Vulkan init stub");
-    return false;
+    vkRenderer_ = std::make_unique<VulkanRenderer>();
+    if (!vkRenderer_->initialize(nativeWindow_)) {
+        vkRenderer_.reset();
+        return false;
+    }
+    return true;
 }
 
 bool LuminaEngineCore::initializeGLES() {
@@ -393,8 +416,9 @@ bool LuminaEngineCore::initializeGLES() {
 
 void LuminaEngineCore::shutdownGraphics() {
     if (useVulkan_) {
-        // Vulkan cleanup
-    } else {
+        if (vkRenderer_) vkRenderer_->destroy();
+    }
+    if (!useVulkan_) {
         if (glRenderer_) glRenderer_->destroy();
         if (eglDisplay_ != EGL_NO_DISPLAY) {
             if (eglSurface_ != EGL_NO_SURFACE) {
@@ -412,7 +436,10 @@ void LuminaEngineCore::shutdownGraphics() {
 }
 
 bool LuminaEngineCore::recreateWindowSurface() {
-    if (useVulkan_) return true;
+    if (useVulkan_) {
+        // Vulkan swapchain recreation will be handled inside the renderer when needed.
+        return true;
+    }
 
     if (eglDisplay_ == EGL_NO_DISPLAY || eglContext_ == EGL_NO_CONTEXT) {
         LOGW("EGL not initialized; cannot create window surface");
@@ -516,10 +543,8 @@ void LuminaEngineCore::updateFrameTiming() {
 
 void LuminaEngineCore::performRender() {
     if (useVulkan_) {
-        // Vulkan render path placeholder
-        return;
-    }
-    if (glRenderer_) {
-        glRenderer_->render(*state_);
+        if (vkRenderer_) vkRenderer_->render();
+    } else {
+        if (glRenderer_) glRenderer_->render(*state_);
     }
 }

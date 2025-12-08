@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.Image
 import com.lumina.engine.GlassmorphicParams
 import com.lumina.engine.NativeBridge
+import com.lumina.engine.NativeEngine
 import com.lumina.engine.PythonOrchestrator
 import com.lumina.engine.RenderMode
 import com.lumina.engine.ProcessingState
@@ -207,6 +208,7 @@ fun LuminaApp(
                 ) {
                     CameraPreviewArea(
                         cameraController = cameraController,
+                        nativeEngine = nativeBridge as? NativeEngine,
                         onMessage = { msg, isError ->
                             scope.launch {
                                 snackbarHostState.showSnackbar(
