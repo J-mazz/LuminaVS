@@ -24,6 +24,7 @@ public:
     void setRenderMode(int mode);
     void setSurfaceWindow(ANativeWindow* window);
     void renderFrame();
+    GLuint getVideoTextureId() const;
 
     lumina::FrameTiming getFrameTiming() const;
     const lumina::LuminaState* getState() const;

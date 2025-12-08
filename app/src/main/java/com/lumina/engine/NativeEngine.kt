@@ -36,6 +36,7 @@ class NativeEngine : NativeBridge {
     private external fun nativeRenderFrame()
     private external fun nativeGetFrameTimingJson(): String
     private external fun nativeGetVersion(): String
+    private external fun nativeGetVideoTextureId(): Int
 
     override fun initialize(): Boolean {
         if (isInitialized.get()) {
@@ -105,5 +106,9 @@ class NativeEngine : NativeBridge {
 
     fun getVersion(): String {
         return if (isInitialized.get()) nativeGetVersion() else "N/A"
+    }
+
+    fun getVideoTextureId(): Int {
+        return if (isInitialized.get()) nativeGetVideoTextureId() else 0
     }
 }
