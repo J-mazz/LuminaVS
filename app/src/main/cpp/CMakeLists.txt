@@ -28,6 +28,7 @@ set(LUMINA_SOURCES
     native-lib.cpp
     lumina_engine.cpp
     renderer_gles.cpp
+    renderer_vulkan.cpp
     json_parser.cpp
 )
 
@@ -35,6 +36,7 @@ set(LUMINA_HEADERS
     engine_structs.h
     lumina_engine.h
     renderer_gles.h
+    renderer_vulkan.h
     json_parser.h
 )
 
@@ -136,6 +138,7 @@ target_compile_definitions(lumina_engine PRIVATE
     # Graphics API selection
     LUMINA_USE_VULKAN
     LUMINA_USE_GLES3
+    VK_USE_PLATFORM_ANDROID_KHR
     
     # Memory alignment for GPU buffers
     LUMINA_GPU_BUFFER_ALIGNMENT=256

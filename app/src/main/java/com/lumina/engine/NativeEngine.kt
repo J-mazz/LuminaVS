@@ -108,7 +108,7 @@ class NativeEngine : NativeBridge {
         return if (isInitialized.get()) nativeGetVersion() else "N/A"
     }
 
-    fun getVideoTextureId(): Int {
+    override fun getVideoTextureId(): Int {
         return if (isInitialized.get()) nativeGetVideoTextureId() else 0
     }
 }

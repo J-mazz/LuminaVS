@@ -42,7 +42,7 @@ Thumbs.db
 # Native
 .cxx/
 .externalNativeBuild/
-/Android/
+Android/
 
 # Model files (too large for git)
 *.gguf
@@ -57,10 +57,10 @@ __pycache__/
 *.so
 .coverage
 .pytest_cache/
-.venv
-.venv311
-.venv312
-.venv313
+.venv/
+.venv311/
+.venv312/
+.venv313/
 env/
 venv/
 ENV/
@@ -84,3 +84,7 @@ htmlcov/
 *.keystore
 *.jks
 google-services.json
+Android/
+
+# Android SDK (local-only)
+Android/

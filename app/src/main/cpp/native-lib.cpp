@@ -119,6 +119,24 @@ Java_com_lumina_engine_NativeEngine_nativeGetVideoTextureId(
     return static_cast<jint>(LuminaEngineCore::getInstance().getVideoTextureId());
 }
 
+JNIEXPORT void JNICALL
+Java_com_lumina_engine_NativeEngine_nativeUploadCameraFrame(
+    JNIEnv* env,
+    jobject /* this */,
+    jobject buffer,
+    jint width,
+    jint height
+) {
+    if (!buffer) return;
+    void* ptr = env->GetDirectBufferAddress(buffer);
+    jlong capacity = env->GetDirectBufferCapacity(buffer);
+    if (!ptr || capacity <= 0) {
+        LOGE("nativeUploadCameraFrame: buffer not direct or has no capacity");
+        return;
+    }
+    LuminaEngineCore::getInstance().uploadCameraFrame(static_cast<uint8_t*>(ptr), static_cast<size_t>(capacity), static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+}
+
 // JNI_OnLoad - Called when the library is loaded
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* /* reserved */) {
     LOGI("Lumina Engine JNI loaded");

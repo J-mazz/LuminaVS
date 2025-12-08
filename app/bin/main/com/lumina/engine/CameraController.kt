@@ -44,14 +44,33 @@ class CameraController(private val context: Context) {
     private var activeRecording: Recording? = null
     private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
-    fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView): Result<Unit> {
+    fun startCamera(
+        lifecycleOwner: LifecycleOwner,
+        previewView: PreviewView,
+        externalSurface: Surface? = null
+    ): Result<Unit> {
         val provider = cameraProviderFuture.get()
 
         val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
 
+        val targetSurface = externalSurface?.takeIf { it.isValid }
+
         preview = Preview.Builder()
             .setTargetRotation(rotation)
-            .build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
+            .build().also { previewInstance ->
+                if (targetSurface != null) {
+                    previewInstance.setSurfaceProvider { request ->
+                        request.provideSurface(
+                            targetSurface,
+                            ContextCompat.getMainExecutor(context)
+                        ) { result ->
+                            Log.d(TAG, "Preview surface result: ${result.resultCode}")
+                        }
+                    }
+                } else {
+                    previewInstance.setSurfaceProvider(previewView.surfaceProvider)
+                }
+            }
 
         imageCapture = ImageCapture.Builder()
             .setTargetRotation(rotation)
@@ -85,13 +104,17 @@ class CameraController(private val context: Context) {
         }
     }
 
-    fun switchCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView): Result<Unit> {
+    fun switchCamera(
+        lifecycleOwner: LifecycleOwner,
+        previewView: PreviewView,
+        externalSurface: Surface? = null
+    ): Result<Unit> {
         cameraSelector = if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
             CameraSelector.DEFAULT_FRONT_CAMERA
         } else {
             CameraSelector.DEFAULT_BACK_CAMERA
         }
-        return startCamera(lifecycleOwner, previewView)
+        return startCamera(lifecycleOwner, previewView, externalSurface)
     }
 
     fun takePhoto(onResult: (Result<String>) -> Unit) {
