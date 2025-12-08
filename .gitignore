@@ -42,6 +42,7 @@ Thumbs.db
 # Native
 .cxx/
 .externalNativeBuild/
+/Android/
 
 # Model files (too large for git)
 *.gguf
