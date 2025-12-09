@@ -59,7 +59,7 @@ class VideoEditor(private val context: Context) {
                 runCatching { extractor.getTrackFormat(track).getInteger(MediaFormat.KEY_MAX_INPUT_SIZE) }.getOrNull()
             }.maxOrNull()?.coerceAtLeast(64 * 1024) ?: 256 * 1024
 
-            val buffer = ByteBuffer.allocateDirect(maxBufferSize)
+            val buffer = DirectBufferPool.getDirectBuffer(maxBufferSize)
             val info = MediaCodec.BufferInfo()
 
             val startUs = startMs * 1000

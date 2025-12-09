@@ -23,4 +23,11 @@ class DirectBufferPoolTest {
         assertTrue(b2.capacity() >= 2048)
         assertTrue(b1 !== b2)
     }
+
+    @Test
+    fun testPoolShrinksAfterLargeRequest() {
+        val big = DirectBufferPool.getDirectBuffer(16 * 1024 * 1024) // 16MB request
+        val small = DirectBufferPool.getDirectBuffer(1024) // should shrink to at most DEFAULT_MAX_POOLED_CAPACITY
+        assertTrue(small.capacity() <= 8 * 1024 * 1024)
+    }
 }
