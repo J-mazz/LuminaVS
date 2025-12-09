@@ -7,34 +7,33 @@
 #include <optional>
 #include <array>
 
-// Minimal Vulkan renderer that clears the swapchain with a solid color.
-// Designed as a production-ready starting point; can be extended with pipelines
-// for textured rendering and effects.
+// [FIX] Required for LuminaState definition
+#include "engine_structs.h"
+
 class VulkanRenderer {
 public:
     bool initialize(ANativeWindow* window);
     void destroy();
 
-    // Render one frame; returns false on unrecoverable failure.
-    bool render();
-
-    // Recreate swapchain on surface changes (resize/rotation/out-of-date).
+    // [FIX] Update signature to accept state for effect processing
+    bool render(const lumina::LuminaState& state);
+    
     bool recreate(ANativeWindow* window);
-
-    // Upload an RGBA8 texture (e.g., camera frame) into GPU memory.
+    
+    // [FIX] Method to receive raw camera frames from Kotlin
     bool uploadTexture(const void* data, size_t size, uint32_t width, uint32_t height);
 
-    // Update effect parameters used as push constants by the fragment shader.
+    // Matches GLSL layout(push_constant) uniform block alignment (std140)
     struct EffectParams {
-        float time = 0.0f;
-        float intensity = 1.0f;
-        int effectType = 0;
-        float pad0 = 0.0f;
-        float tint[4] = {1,1,1,1};
-        float center[2] = {0.5f, 0.5f};
-        float scale[2] = {1.0f, 1.0f};
-        float params[2] = {0.0f, 0.0f};
-        float resolution[2] = {1.0f, 1.0f};
+        float time;
+        float intensity;
+        int effectType;
+        float pad0;      // Padding for 16-byte alignment
+        float tint[4];
+        float center[2];
+        float scale[2];
+        float params[2]; // param1, param2
+        float resolution[2];
     };
 
     void setEffectParams(const EffectParams& params);
@@ -106,11 +105,11 @@ private:
 
     SwapchainResources swapchain_{};
     size_t currentFrame_ = 0;
-    ANativeWindow* window_ = nullptr; // Not owned; managed by Java side
+    ANativeWindow* window_ = nullptr;
 
     bool initialized_ = false;
 
-    // Embedded SPIR-V binaries (compiled from simple textured quad shaders)
-    static const std::array<uint32_t, 359> kVertSpv;
-    static const std::array<uint32_t, 819> kFragSpv;
+    // NOTE: The SPIR-V arrays are generated at build time and included via generated/shaders_generated.h
+    static const std::vector<uint32_t> kVertSpv;
+    static const std::vector<uint32_t> kFragSpv;
 };

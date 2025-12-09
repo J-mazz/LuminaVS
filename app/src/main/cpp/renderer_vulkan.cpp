@@ -29,14 +29,11 @@ bool hasExtension(const std::vector<VkExtensionProperties>& exts, const char* na
 }
 }
 
-// Embedded SPIR-V: simple full-screen quad and textured fragment with basic effects.
-const std::array<uint32_t, 359> VulkanRenderer::kVertSpv = {
-    119734787, 65536, 851978, 50, 0, 131089, 1, 393227, 1, 1280527431, 1685353262, 808793134, 0, 196622, 0, 1, 524303, 0, 4, 1852399981, 0, 13, 27, 41, 196611, 2, 450, 655364, 1197427783, 1279741775, 1885560645, 1953718128, 1600482425, 1701734764, 1919509599, 1769235301, 25974, 524292, 1197427783, 1279741775, 1852399429, 1685417059, 1768185701, 1952671090, 6649449, 262149, 4, 1852399981, 0, 393221, 11, 1348430951, 1700164197, 2019914866, 0, 393222, 11, 0, 1348430951, 1953067887, 7237481, 458758, 11, 1, 1348430951, 1953393007, 1702521171, 0, 458758, 11, 2, 1130327143, 1148217708, 1635021673, 6644590, 458758, 11, 3, 1130327143, 1147956341, 1635021673, 6644590, 196613, 13, 0, 393221, 27, 1449094247, 1702130277, 1684949368, 30821, 327685, 30, 1701080681, 1818386808, 101, 196613, 41, 5657974, 327685, 47, 1701080681, 1818386808, 101, 327752, 11, 0, 11, 0, 327752, 11, 1, 11, 1, 327752, 11, 2, 11, 3, 327752, 11, 3, 11, 4, 196679, 11, 2, 262215, 27, 11, 42, 262215, 41, 30, 0, 131091, 2, 196641, 3, 2, 196630, 6, 32, 262167, 7, 6, 4, 262165, 8, 32, 0, 262187, 8, 9, 1, 262172, 10, 6, 9, 393246, 11, 7, 6, 10, 10, 262176, 12, 3, 11, 262203, 12, 13, 3, 262165, 14, 32, 1, 262187, 14, 15, 0, 262167, 16, 6, 2, 262187, 8, 17, 4, 262172, 18, 16, 17, 262187, 6, 19, 3212836864, 327724, 16, 20, 19, 19, 262187, 6, 21, 1065353216, 327724, 16, 22, 21, 19, 327724, 16, 23, 19, 21, 327724, 16, 24, 21, 21, 458796, 18, 25, 20, 22, 23, 24, 262176, 26, 1, 14, 262203, 26, 27, 1, 262176, 29, 7, 18, 262176, 31, 7, 16, 262187, 6, 34, 0, 262176, 38, 3, 7, 262176, 40, 3, 16, 262203, 40, 41, 3, 327724, 16, 42, 34, 21, 327724, 16, 43, 34, 34, 327724, 16, 44, 21, 34, 458796, 18, 45, 42, 24, 43, 44, 327734, 2, 4, 0, 3, 131320, 5, 262203, 29, 30, 7, 262203, 29, 47, 7, 262205, 14, 28, 27, 196670, 30, 25, 327745, 31, 32, 30, 28, 262205, 16, 33, 32, 327761, 6, 35, 33, 0, 327761, 6, 36, 33, 1, 458832, 7, 37, 35, 36, 34, 21, 327745, 38, 39, 13, 15, 196670, 39, 37, 262205, 14, 46, 27, 196670, 47, 45, 327745, 31, 48, 47, 46, 262205, 16, 49, 48, 196670, 41, 49, 65789, 65592
-};
+// Prefer generated shader header if available (produced by the Gradle task)
+#if __has_include("generated/shaders_generated.h")
+#include "generated/shaders_generated.h"
+#endif
 
-const std::array<uint32_t, 819> VulkanRenderer::kFragSpv = {
-    119734787, 65536, 851978, 124, 0, 131089, 1, 393227, 1, 1280527431, 1685353262, 808793134, 0, 196622, 0, 1, 458767, 4, 4, 1852399981, 0, 100, 120, 196624, 4, 7, 196611, 2, 450, 655364, 1197427783, 1279741775, 1885560645, 1953718128, 1600482425, 1701734764, 1919509599, 1769235301, 25974, 524292, 1197427783, 1279741775, 1852399429, 1685417059, 1768185701, 1952671090, 6649449, 262149, 4, 1852399981, 0, 458757, 11, 1819308129, 1717978489, 678716261, 993289846, 0, 196613, 10, 99, 262149, 15, 1701209669, 7566435, 327686, 15, 0, 1701669236, 0, 393222, 15, 1, 1702129257, 1953067886, 121, 393222, 15, 2, 1701209701, 2035577955, 25968, 327686, 15, 3, 811884912, 0, 327686, 15, 4, 1953393012, 0, 327686, 15, 5, 1953391971, 29285, 327686, 15, 6, 1818321779, 101, 327686, 15, 7, 1634886000, 29549, 393222, 15, 8, 1869833586, 1769239916, 28271, 196613, 17, 25456, 262149, 28, 2036429415, 0, 196613, 98, 30325, 196613, 100, 5657974, 196613, 111, 99, 327685, 115, 2019906677, 1701999988, 0, 327685, 120, 1131705711, 1919904879, 0, 262149, 121, 1634886000, 109, 327752, 15, 0, 35, 0, 327752, 15, 1, 35, 4, 327752, 15, 2, 35, 8, 327752, 15, 3, 35, 12, 327752, 15, 4, 35, 16, 327752, 15, 5, 35, 32, 327752, 15, 6, 35, 40, 327752, 15, 7, 35, 48, 327752, 15, 8, 35, 56, 196679, 15, 2, 262215, 100, 30, 0, 262215, 115, 34, 0, 262215, 115, 33, 0, 262215, 120, 30, 0, 131091, 2, 196641, 3, 2, 196630, 6, 32, 262167, 7, 6, 4, 262176, 8, 7, 7, 262177, 9, 7, 8, 262165, 13, 32, 1, 262167, 14, 6, 2, 720926, 15, 6, 6, 13, 6, 7, 14, 14, 14, 14, 262176, 16, 9, 15, 262203, 16, 17, 9, 262187, 13, 18, 2, 262176, 19, 9, 13, 262187, 13, 22, 1, 131092, 23, 262176, 27, 7, 6, 262167, 29, 6, 3, 262187, 6, 32, 1050220167, 262187, 6, 33, 1058424226, 262187, 6, 34, 1038710997, 393260, 29, 35, 32, 33, 34, 262165, 39, 32, 0, 262187, 39, 40, 0, 262187, 39, 43, 1, 262187, 39, 46, 2, 262187, 6, 57, 1065353216, 262176, 62, 9, 6, 262187, 13, 73, 4, 262176, 74, 9, 7, 262187, 39, 87, 3, 262176, 97, 7, 14, 262176, 99, 1, 14, 262203, 99, 100, 1, 262187, 13, 102, 6, 262176, 103, 9, 14, 262187, 13, 107, 5, 589849, 112, 6, 1, 0, 0, 0, 1, 0, 196635, 113, 112, 262176, 114, 0, 113, 262203, 114, 115, 0, 262176, 119, 3, 7, 262203, 119, 120, 3, 327734, 2, 4, 0, 3, 131320, 5, 262203, 97, 98, 7, 262203, 8, 111, 7, 262203, 8, 121, 7, 262205, 14, 101, 100, 327745, 103, 104, 17, 102, 262205, 14, 105, 104, 327813, 14, 106, 101, 105, 327745, 103, 108, 17, 107, 262205, 14, 109, 108, 327809, 14, 110, 106, 109, 196670, 98, 110, 262205, 113, 116, 115, 262205, 14, 117, 98, 327767, 7, 118, 116, 117, 196670, 111, 118, 262205, 7, 122, 111, 196670, 121, 122, 327737, 7, 123, 11, 121, 196670, 120, 123, 65789, 65592, 327734, 7, 11, 0, 9, 196663, 8, 10, 131320, 12, 262203, 27, 28, 7, 327745, 19, 20, 17, 18, 262205, 13, 21, 20, 327850, 23, 24, 21, 22, 196855, 26, 0, 262394, 24, 25, 49, 131320, 25, 262205, 7, 30, 10, 524367, 29, 31, 30, 30, 0, 1, 2, 327828, 6, 36, 31, 35, 196670, 28, 36, 262205, 6, 37, 28, 393296, 29, 38, 37, 37, 37, 327745, 27, 41, 10, 40, 327761, 6, 42, 38, 0, 196670, 41, 42, 327745, 27, 44, 10, 43, 327761, 6, 45, 38, 1, 196670, 44, 45, 327745, 27, 47, 10, 46, 327761, 6, 48, 38, 2, 196670, 47, 48, 131321, 26, 131320, 49, 327745, 19, 50, 17, 18, 262205, 13, 51, 50, 327850, 23, 52, 51, 18, 196855, 54, 0, 262394, 52, 53, 54, 131320, 53, 262205, 7, 55, 10, 524367, 29, 56, 55, 55, 0, 1, 2, 262205, 7, 58, 10, 524367, 29, 59, 58, 58, 0, 1, 2, 393296, 29, 60, 57, 57, 57, 327811, 29, 61, 60, 59, 327745, 62, 63, 17, 22, 262205, 6, 64, 63, 393296, 29, 65, 64, 64, 64, 524300, 29, 66, 1, 46, 56, 61, 65, 327745, 27, 67, 10, 40, 327761, 6, 68, 66, 0, 196670, 67, 68, 327745, 27, 69, 10, 43, 327761, 6, 70, 66, 1, 196670, 69, 70, 327745, 27, 71, 10, 46, 327761, 6, 72, 66, 2, 196670, 71, 72, 131321, 54, 131320, 54, 131321, 26, 131320, 26, 327745, 74, 75, 17, 73, 262205, 7, 76, 75, 524367, 29, 77, 76, 76, 0, 1, 2, 262205, 7, 78, 10, 524367, 29, 79, 78, 78, 0, 1, 2, 327813, 29, 80, 79, 77, 327745, 27, 81, 10, 40, 327761, 6, 82, 80, 0, 196670, 81, 82, 327745, 27, 83, 10, 43, 327761, 6, 84, 80, 1, 196670, 83, 84, 327745, 27, 85, 10, 46, 327761, 6, 86, 80, 2, 196670, 85, 86, 393281, 62, 88, 17, 73, 87, 262205, 6, 89, 88, 327745, 27, 90, 10, 87, 262205, 6, 91, 90, 327813, 6, 92, 91, 89, 327745, 27, 93, 10, 87, 196670, 93, 92, 262205, 7, 94, 10, 131326, 94, 65592
-};
 
 bool VulkanRenderer::initialize(ANativeWindow* window) {
     if (initialized_) return true;
@@ -61,7 +58,96 @@ bool VulkanRenderer::initialize(ANativeWindow* window) {
     initialized_ = true;
     return true;
 }
+bool VulkanRenderer::render(const lumina::LuminaState& state) {
+    if (!initialized_) return false;
 
+    // [FIX] 1. Map High-Level State -> Low-Level GPU Struct
+    const lumina::EffectParams* active = (state.activeEffectCount > 0) ? &state.effects[0] : nullptr;
+
+    effectParams_.time = state.timing.totalTime;
+    effectParams_.intensity = active ? active->intensity : 0.0f;
+    effectParams_.effectType = active ? static_cast<int>(active->type) : 0;
+
+    // Manual copy for safety across JNI/ABI boundaries
+    if (active) {
+        effectParams_.tint[0] = active->tintColor.r;
+        effectParams_.tint[1] = active->tintColor.g;
+        effectParams_.tint[2] = active->tintColor.b;
+        effectParams_.tint[3] = active->tintColor.a;
+
+        effectParams_.center[0] = active->center.x;
+        effectParams_.center[1] = active->center.y;
+
+        effectParams_.scale[0] = active->scale.x;
+        effectParams_.scale[1] = active->scale.y;
+
+        effectParams_.params[0] = active->param1;
+        effectParams_.params[1] = active->param2;
+    } else {
+        // Defaults
+        effectParams_.tint[0] = 1.0f; effectParams_.tint[1] = 1.0f;
+        effectParams_.tint[2] = 1.0f; effectParams_.tint[3] = 1.0f;
+        effectParams_.center[0] = 0.5f; effectParams_.center[1] = 0.5f;
+        effectParams_.scale[0] = 1.0f; effectParams_.scale[1] = 1.0f;
+    }
+
+    // Update resolution uniform
+    effectParams_.resolution[0] = static_cast<float>(swapchain_.width);
+    effectParams_.resolution[1] = static_cast<float>(swapchain_.height);
+
+    // [FIX] 2. Standard Vulkan Render Loop
+    const size_t frameIndex = currentFrame_ % swapchain_.images.size();
+    
+    // Wait for the fence to ensure we can write to this frame's resources
+    vkWaitForFences(device_, 1, &swapchain_.inFlightFences[frameIndex], VK_TRUE, UINT64_MAX);
+
+    uint32_t imageIndex = 0;
+    VkResult acquire = vkAcquireNextImageKHR(device_, swapchain_.swapchain, UINT64_MAX, swapchain_.imageAvailable[frameIndex], VK_NULL_HANDLE, &imageIndex);
+    
+    if (acquire == VK_ERROR_OUT_OF_DATE_KHR) return recreate(window_);
+    if (acquire != VK_SUCCESS && acquire != VK_SUBOPTIMAL_KHR) return false;
+
+    vkResetFences(device_, 1, &swapchain_.inFlightFences[frameIndex]);
+
+    // [CRITICAL] Record commands *now* to capture the latest effectParams_
+    recordCommandBuffer(imageIndex);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    
+    VkSemaphore waitSemaphores[] = {swapchain_.imageAvailable[frameIndex]};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &swapchain_.commandBuffers[imageIndex];
+    
+    VkSemaphore signalSemaphores[] = {swapchain_.renderFinished[frameIndex]};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    if (vkQueueSubmit(graphicsQueue_, 1, &submitInfo, swapchain_.inFlightFences[frameIndex]) != VK_SUCCESS) {
+        return false;
+    }
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+    VkSwapchainKHR swapchains[] = {swapchain_.swapchain};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapchains;
+    presentInfo.pImageIndices = &imageIndex;
+
+    VkResult present = vkQueuePresentKHR(graphicsQueue_, &presentInfo);
+    if (present == VK_ERROR_OUT_OF_DATE_KHR || present == VK_SUBOPTIMAL_KHR) {
+        return recreate(window_);
+    }
+
+    currentFrame_++;
+    return true;
+}
 void VulkanRenderer::setEffectParams(const EffectParams& params) {
     effectParams_ = params;
 }
@@ -153,68 +239,7 @@ bool VulkanRenderer::recreate(ANativeWindow* window) {
     return true;
 }
 
-bool VulkanRenderer::render() {
-    if (!initialized_) return false;
-
-    const size_t frameIndex = currentFrame_ % swapchain_.images.size();
-    VkSemaphore imageAvailable = swapchain_.imageAvailable[frameIndex];
-    VkSemaphore renderFinished = swapchain_.renderFinished[frameIndex];
-    VkFence inFlight = swapchain_.inFlightFences[frameIndex];
-
-    vkWaitForFences(device_, 1, &inFlight, VK_TRUE, UINT64_MAX);
-
-    uint32_t imageIndex = 0;
-    VkResult acquire = vkAcquireNextImageKHR(device_, swapchain_.swapchain, UINT64_MAX, imageAvailable, VK_NULL_HANDLE, &imageIndex);
-    if (acquire == VK_ERROR_OUT_OF_DATE_KHR) {
-        LOGW("Swapchain out of date; recreating");
-        return recreate(window_);
-    } else if (acquire != VK_SUCCESS && acquire != VK_SUBOPTIMAL_KHR) {
-        LOGE("Failed to acquire swapchain image: %d", acquire);
-        return false;
-    }
-
-    vkResetFences(device_, 1, &inFlight);
-
-    // Refresh command buffer with latest effect parameters for this image
-    if (!recordCommandBuffer(imageIndex)) {
-        return false;
-    }
-
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    auto submitInfo = makeStruct<VkSubmitInfo>(VK_STRUCTURE_TYPE_SUBMIT_INFO);
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = &imageAvailable;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &swapchain_.commandBuffers[imageIndex];
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &renderFinished;
-
-    VkResult submit = vkQueueSubmit(graphicsQueue_, 1, &submitInfo, inFlight);
-    if (submit != VK_SUCCESS) {
-        LOGE("vkQueueSubmit failed: %d", submit);
-        return false;
-    }
-
-    auto presentInfo = makeStruct<VkPresentInfoKHR>(VK_STRUCTURE_TYPE_PRESENT_INFO_KHR);
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &renderFinished;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &swapchain_.swapchain;
-    presentInfo.pImageIndices = &imageIndex;
-
-    VkResult present = vkQueuePresentKHR(graphicsQueue_, &presentInfo);
-    if (present == VK_ERROR_OUT_OF_DATE_KHR || present == VK_SUBOPTIMAL_KHR) {
-        LOGW("Swapchain present suboptimal/out-of-date; recreating");
-        return recreate(window_);
-    } else if (present != VK_SUCCESS) {
-        LOGE("vkQueuePresentKHR failed: %d", present);
-        return false;
-    }
-
-    currentFrame_++;
-    return true;
-}
+// Removed legacy parameterless render() - use render(const LuminaState&) instead.
 
 bool VulkanRenderer::recordCommandBuffer(uint32_t imageIndex) {
         if (imageIndex >= swapchain_.commandBuffers.size()) return false;

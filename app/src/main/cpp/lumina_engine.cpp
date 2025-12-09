@@ -543,7 +543,8 @@ void LuminaEngineCore::updateFrameTiming() {
 
 void LuminaEngineCore::performRender() {
     if (useVulkan_) {
-        if (vkRenderer_) vkRenderer_->render();
+        // [FIX] Pass the dereferenced state object
+        if (vkRenderer_) vkRenderer_->render(*state_);
     } else {
         if (glRenderer_) glRenderer_->render(*state_);
     }

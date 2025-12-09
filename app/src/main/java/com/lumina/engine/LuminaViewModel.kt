@@ -156,6 +156,7 @@ interface NativeBridge {
     fun setRenderMode(mode: Int)
     fun getFrameTiming(): FrameTiming
     fun getVideoTextureId(): Int
+    fun uploadCameraFrame(buffer: java.nio.ByteBuffer, width: Int, height: Int)
     fun shutdown()
 }
 

@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,18 +23,33 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.lumina.engine.CameraController
-import com.lumina.engine.NativeEngine
+import com.lumina.engine.INativeEngine
+import com.lumina.engine.createCameraAnalyzer
+
+// Simple ThreadLocal direct buffer pool to reuse a single direct ByteBuffer per thread
+internal val DIRECT_BUFFER_POOL = ThreadLocal<ByteBuffer?>()
+
+internal fun getDirectBuffer(minSize: Int): ByteBuffer {
+    val existing = DIRECT_BUFFER_POOL.get()
+    if (existing == null || existing.capacity() < minSize) {
+        val nb = ByteBuffer.allocateDirect(minSize).order(ByteOrder.nativeOrder())
+        DIRECT_BUFFER_POOL.set(nb)
+        return nb
+    }
+    existing.clear()
+    return existing
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CameraPreviewArea(
     cameraController: CameraController,
-    nativeEngine: NativeEngine? = null,
+    nativeEngine: INativeEngine? = null,
     onMessage: (String, Boolean) -> Unit,
     onVideoSaved: (String) -> Unit = {}
 ) {
@@ -75,7 +92,17 @@ fun CameraPreviewArea(
     }
 
     LaunchedEffect(activeSurface) {
-        cameraController.startCamera(lifecycleOwner, previewView, activeSurface)
+        // Determine if we need to feed frames manually (Vulkan mode)
+        // We assume textureId != 0 implies GLES SurfaceTexture is active.
+        // If activeSurface is NULL (Vulkan), we attach the analyzer.
+        val useAnalyzer = (activeSurface == null && nativeEngine != null)
+
+        val analyzer = if (useAnalyzer) {
+            // Adapter uses a testable factory that avoids references to the NativeEngine native method for unit tests
+            createCameraAnalyzer(nativeEngine!!)
+        } else null
+
+        cameraController.startCamera(lifecycleOwner, previewView, activeSurface, analyzer)
             .onFailure {
                 lastMessage = "Camera error: ${it.message ?: "unknown"}";
                 onMessage(lastMessage, true)
@@ -86,7 +113,10 @@ fun CameraPreviewArea(
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             when (event) {
                 androidx.lifecycle.Lifecycle.Event.ON_RESUME -> {
-                    cameraController.startCamera(lifecycleOwner, previewView, activeSurface)
+                    val analyzer = if (textureId != 0 && nativeEngine != null) {
+                        createCameraAnalyzer(nativeEngine!!)
+                    } else null
+                    cameraController.startCamera(lifecycleOwner, previewView, activeSurface, analyzer)
                         .onFailure {
                             lastMessage = "Camera error: ${it.message ?: "unknown"}";
                             onMessage(lastMessage, true)
@@ -191,7 +221,10 @@ fun CameraPreviewArea(
             }
 
             FilledTonalButton(onClick = {
-                cameraController.switchCamera(lifecycleOwner, previewView, activeSurface)
+                val analyzer = if (textureId != 0 && nativeEngine != null) {
+                    createCameraAnalyzer(nativeEngine!!)
+                } else null
+                cameraController.switchCamera(lifecycleOwner, previewView, activeSurface, analyzer)
                     .onSuccess {
                         lastMessage = "Switched camera"
                         onMessage(lastMessage, false)

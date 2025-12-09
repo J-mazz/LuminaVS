@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * Native Engine - Kotlin wrapper for C++ JNI bridge
  */
-class NativeEngine : NativeBridge {
+class NativeEngine : NativeBridge, INativeEngine {
 
     companion object {
         private const val TAG = "NativeEngine"
@@ -37,6 +37,7 @@ class NativeEngine : NativeBridge {
     private external fun nativeGetFrameTimingJson(): String
     private external fun nativeGetVersion(): String
     private external fun nativeGetVideoTextureId(): Int
+    private external fun nativeUploadCameraFrame(buffer: java.nio.ByteBuffer, width: Int, height: Int)
 
     override fun initialize(): Boolean {
         if (isInitialized.get()) {
@@ -110,5 +111,10 @@ class NativeEngine : NativeBridge {
 
     override fun getVideoTextureId(): Int {
         return if (isInitialized.get()) nativeGetVideoTextureId() else 0
+    }
+
+    override fun uploadCameraFrame(buffer: java.nio.ByteBuffer, width: Int, height: Int) {
+        if (!isInitialized.get()) return
+        nativeUploadCameraFrame(buffer, width, height)
     }
 }

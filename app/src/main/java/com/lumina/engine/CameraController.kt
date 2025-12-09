@@ -40,6 +40,7 @@ class CameraController(private val context: Context) {
     private var camera: Camera? = null
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
+    private var imageAnalysis: androidx.camera.core.ImageAnalysis? = null
     private var videoCapture: VideoCapture<Recorder>? = null
     private var activeRecording: Recording? = null
     private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -47,55 +48,60 @@ class CameraController(private val context: Context) {
     fun startCamera(
         lifecycleOwner: LifecycleOwner,
         previewView: PreviewView,
-        externalSurface: Surface? = null
+        externalSurface: Surface? = null,
+        // [FIX] New parameter for frame analysis callback
+        analyzer: androidx.camera.core.ImageAnalysis.Analyzer? = null
     ): Result<Unit> {
         val provider = cameraProviderFuture.get()
-
         val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
-
         val targetSurface = externalSurface?.takeIf { it.isValid }
 
+        // 1. Preview Use Case
         preview = Preview.Builder()
             .setTargetRotation(rotation)
             .build().also { previewInstance ->
                 if (targetSurface != null) {
+                    // GLES Path (SurfaceTexture)
                     previewInstance.setSurfaceProvider { request ->
-                        request.provideSurface(
-                            targetSurface,
-                            ContextCompat.getMainExecutor(context)
-                        ) { result ->
-                            Log.d(TAG, "Preview surface result: ${result.resultCode}")
-                        }
+                        request.provideSurface(targetSurface, ContextCompat.getMainExecutor(context)) { }
                     }
                 } else {
+                    // Standard View Path
                     previewInstance.setSurfaceProvider(previewView.surfaceProvider)
                 }
             }
 
+        // 2. Image Capture
         imageCapture = ImageCapture.Builder()
             .setTargetRotation(rotation)
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .build()
 
+        // 3. Video Capture
         val recorder = Recorder.Builder()
-            .setQualitySelector(QualitySelector.fromOrderedList(listOf(
-                Quality.UHD,
-                Quality.FHD,
-                Quality.HD,
-                Quality.SD
-            )))
+            .setQualitySelector(QualitySelector.fromOrderedList(listOf(Quality.UHD, Quality.FHD, Quality.HD)))
             .build()
-
         videoCapture = VideoCapture.withOutput(recorder)
+
+        val useCases = mutableListOf<androidx.camera.core.UseCase>(preview!!, imageCapture!!, videoCapture!!)
+
+        // 4. [FIX] Image Analysis (Vulkan Input)
+        if (analyzer != null) {
+            imageAnalysis = androidx.camera.core.ImageAnalysis.Builder()
+                .setBackpressureStrategy(androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .setOutputImageFormat(androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                .build()
+            
+            imageAnalysis?.setAnalyzer(ContextCompat.getMainExecutor(context), analyzer)
+            useCases.add(imageAnalysis!!)
+        }
 
         return try {
             provider.unbindAll()
             camera = provider.bindToLifecycle(
                 lifecycleOwner,
                 cameraSelector,
-                preview,
-                imageCapture,
-                videoCapture
+                *useCases.toTypedArray()
             )
             Result.success(Unit)
         } catch (e: Exception) {
@@ -107,14 +113,15 @@ class CameraController(private val context: Context) {
     fun switchCamera(
         lifecycleOwner: LifecycleOwner,
         previewView: PreviewView,
-        externalSurface: Surface? = null
+        externalSurface: Surface? = null,
+        analyzer: androidx.camera.core.ImageAnalysis.Analyzer? = null
     ): Result<Unit> {
         cameraSelector = if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
             CameraSelector.DEFAULT_FRONT_CAMERA
         } else {
             CameraSelector.DEFAULT_BACK_CAMERA
         }
-        return startCamera(lifecycleOwner, previewView, externalSurface)
+        return startCamera(lifecycleOwner, previewView, externalSurface, analyzer)
     }
 
     fun takePhoto(onResult: (Result<String>) -> Unit) {
@@ -201,6 +208,7 @@ class CameraController(private val context: Context) {
     fun shutdown() {
         activeRecording?.stop()
         activeRecording = null
+        imageAnalysis?.clearAnalyzer()
         val provider = cameraProviderFuture.get()
         provider.unbindAll()
     }

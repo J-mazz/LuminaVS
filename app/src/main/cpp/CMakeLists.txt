@@ -91,6 +91,7 @@ endif()
 target_include_directories(lumina_engine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${ANDROID_NDK}/sources/android/native_app_glue
+    ${CMAKE_CURRENT_SOURCE_DIR}/generated
 )
 
 if(OpenCV_FOUND)
