@@ -38,6 +38,7 @@ app/build/
 # OS
 .DS_Store
 Thumbs.db
+Android/
 
 # Native
 .cxx/
