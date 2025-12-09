@@ -14,8 +14,7 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
+// ByteBuffer imports removed; buffer pool centralized in DirectBufferPool
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,22 +27,10 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.lumina.engine.CameraController
+import com.lumina.engine.CachingImageAnalyzer // [ADD THIS IMPORT]
 import com.lumina.engine.INativeEngine
 import com.lumina.engine.createCameraAnalyzer
 
-// Simple ThreadLocal direct buffer pool to reuse a single direct ByteBuffer per thread
-internal val DIRECT_BUFFER_POOL = ThreadLocal<ByteBuffer?>()
-
-internal fun getDirectBuffer(minSize: Int): ByteBuffer {
-    val existing = DIRECT_BUFFER_POOL.get()
-    if (existing == null || existing.capacity() < minSize) {
-        val nb = ByteBuffer.allocateDirect(minSize).order(ByteOrder.nativeOrder())
-        DIRECT_BUFFER_POOL.set(nb)
-        return nb
-    }
-    existing.clear()
-    return existing
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +59,23 @@ fun CameraPreviewArea(
         }
     }
 
+    // [OPTIMIZATION] Create a persistent analyzer that reuses its buffer
+    // This ensures the cached buffer is not lost when the UI recomposes.
+    val vulkanAnalyzer = remember(nativeEngine) {
+        if (nativeEngine != null) {
+            CachingImageAnalyzer { buffer, width, height ->
+                nativeEngine.uploadCameraFrame(buffer, width, height)
+            }
+        } else null
+    }
+
+    // GLES analyzer also persisted for reuse to avoid repeated analyzer allocations
+    val glesAnalyzer = remember(nativeEngine) {
+        if (nativeEngine != null && textureId != 0) {
+            createCameraAnalyzer(nativeEngine)
+        } else null
+    }
+
     LaunchedEffect(textureId, previewSize) {
         if (textureId != 0 && previewSize != IntSize.Zero) {
             surfaceTexture?.release()
@@ -93,16 +97,12 @@ fun CameraPreviewArea(
 
     LaunchedEffect(activeSurface) {
         // Determine if we need to feed frames manually (Vulkan mode)
-        // We assume textureId != 0 implies GLES SurfaceTexture is active.
-        // If activeSurface is NULL (Vulkan), we attach the analyzer.
+        // If activeSurface is NULL (Vulkan) and we have a native engine, we attach the persistent analyzer.
         val useAnalyzer = (activeSurface == null && nativeEngine != null)
 
-        val analyzer = if (useAnalyzer) {
-            // Adapter uses a testable factory that avoids references to the NativeEngine native method for unit tests
-            createCameraAnalyzer(nativeEngine!!)
-        } else null
+        val analyzerToUse = if (useAnalyzer) vulkanAnalyzer else null
 
-        cameraController.startCamera(lifecycleOwner, previewView, activeSurface, analyzer)
+        cameraController.startCamera(lifecycleOwner, previewView, activeSurface, analyzerToUse)
             .onFailure {
                 lastMessage = "Camera error: ${it.message ?: "unknown"}";
                 onMessage(lastMessage, true)
@@ -111,17 +111,20 @@ fun CameraPreviewArea(
 
     DisposableEffect(lifecycleOwner, activeSurface) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            when (event) {
-                androidx.lifecycle.Lifecycle.Event.ON_RESUME -> {
-                    val analyzer = if (textureId != 0 && nativeEngine != null) {
-                        createCameraAnalyzer(nativeEngine!!)
-                    } else null
-                    cameraController.startCamera(lifecycleOwner, previewView, activeSurface, analyzer)
-                        .onFailure {
-                            lastMessage = "Camera error: ${it.message ?: "unknown"}";
-                            onMessage(lastMessage, true)
+                    when (event) {
+                    androidx.lifecycle.Lifecycle.Event.ON_RESUME -> {
+                        val useVulkanAnalyzer = (activeSurface == null && nativeEngine != null)
+                        val analyzer = if (useVulkanAnalyzer) {
+                            vulkanAnalyzer
+                        } else {
+                            glesAnalyzer
                         }
-                }
+                        cameraController.startCamera(lifecycleOwner, previewView, activeSurface, analyzer)
+                            .onFailure {
+                                lastMessage = "Camera error: ${it.message ?: "unknown"}";
+                                onMessage(lastMessage, true)
+                            }
+                    }
                 androidx.lifecycle.Lifecycle.Event.ON_PAUSE,
                 androidx.lifecycle.Lifecycle.Event.ON_STOP -> {
                     cameraController.shutdown()
@@ -221,9 +224,12 @@ fun CameraPreviewArea(
             }
 
             FilledTonalButton(onClick = {
-                val analyzer = if (textureId != 0 && nativeEngine != null) {
-                    createCameraAnalyzer(nativeEngine!!)
-                } else null
+                val analyzer = if (activeSurface == null && nativeEngine != null) {
+                    // Vulkan path: persistent analyzer
+                    vulkanAnalyzer
+                } else {
+                    glesAnalyzer
+                }
                 cameraController.switchCamera(lifecycleOwner, previewView, activeSurface, analyzer)
                     .onSuccess {
                         lastMessage = "Switched camera"

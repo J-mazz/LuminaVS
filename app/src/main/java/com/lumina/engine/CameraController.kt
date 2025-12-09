@@ -80,20 +80,34 @@ class CameraController(private val context: Context) {
         // 3. Video Capture
         val recorder = Recorder.Builder()
             .setQualitySelector(QualitySelector.fromOrderedList(listOf(Quality.UHD, Quality.FHD, Quality.HD)))
-            .build()
+            .build() as Recorder
         videoCapture = VideoCapture.withOutput(recorder)
 
-        val useCases = mutableListOf<androidx.camera.core.UseCase>(preview!!, imageCapture!!, videoCapture!!)
+        val useCases: MutableList<androidx.camera.core.UseCase> = mutableListOf()
+        useCases.add(preview!!)
+        useCases.add(imageCapture!!)
+        useCases.add(videoCapture!!)
 
-        // 4. [FIX] Image Analysis (Vulkan Input)
+        // 4. [OPTIM] Image Analysis: reuse existing ImageAnalysis instance if available
         if (analyzer != null) {
-            imageAnalysis = androidx.camera.core.ImageAnalysis.Builder()
-                .setBackpressureStrategy(androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setOutputImageFormat(androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-                .build()
-            
-            imageAnalysis?.setAnalyzer(ContextCompat.getMainExecutor(context), analyzer)
-            useCases.add(imageAnalysis!!)
+            if (imageAnalysis == null) {
+                imageAnalysis = androidx.camera.core.ImageAnalysis.Builder()
+                    .setBackpressureStrategy(androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .setOutputImageFormat(androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                    .build()
+                imageAnalysis?.setAnalyzer(ContextCompat.getMainExecutor(context), analyzer)
+                useCases.add(imageAnalysis!!)
+            } else {
+                // We already have an imageAnalysis from a previous bind; just set a new analyzer
+                imageAnalysis?.setAnalyzer(ContextCompat.getMainExecutor(context), analyzer)
+                val ia = imageAnalysis
+                if (ia != null && !useCases.any { it === ia }) {
+                    useCases.add(ia)
+                }
+            }
+        } else {
+            // No analyzer requested: clear existing analyzer if present
+            imageAnalysis?.clearAnalyzer()
         }
 
         return try {

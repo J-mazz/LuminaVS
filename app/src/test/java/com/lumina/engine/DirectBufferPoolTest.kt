@@ -6,15 +6,21 @@ import org.junit.Test
 import java.nio.ByteBuffer
 
 class DirectBufferPoolTest {
-    @Test
-    fun `getDirectBuffer reuses buffer when capacity is sufficient`() {
-        // Use reflection to access the private ThreadLocal from CameraPreviewArea (test-only)
-        val clazz = Class.forName("com.lumina.engine.ui.components.CameraPreviewAreaKt")
-        val method = clazz.getDeclaredMethod("getDirectBuffer", Int::class.javaPrimitiveType)
-        method.isAccessible = true
 
-        val buf1 = method.invoke(null, 1024) as ByteBuffer
-        val buf2 = method.invoke(null, 512) as ByteBuffer
-        assertSame(buf1, buf2) // Should reuse same buffer when capacity >= needed
+    @Test
+    fun testPoolReturnsSameInstanceForSameSize() {
+        val b1 = DirectBufferPool.getDirectBuffer(1024)
+        val b2 = DirectBufferPool.getDirectBuffer(512)
+        // b1 still sufficient; should return same instance
+        assertSame(b1, b2)
+    }
+
+    @Test
+    fun testPoolAllocatesNewForLargerSize() {
+        val b1 = DirectBufferPool.getDirectBuffer(1024)
+        val b2 = DirectBufferPool.getDirectBuffer(2048)
+        // b2 must be a new buffer with capacity >= second request
+        assertTrue(b2.capacity() >= 2048)
+        assertTrue(b1 !== b2)
     }
 }
