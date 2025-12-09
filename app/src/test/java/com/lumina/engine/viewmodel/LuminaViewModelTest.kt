@@ -62,7 +62,7 @@ class LuminaViewModelTest {
         val viewModel = LuminaViewModel(ioDispatcher = testDispatcher)
         viewModel.nativeBridge = mockBridge
 
-        viewModel.setRenderMode(com.lumina.engine.RenderMode.GLES)
+        viewModel.setRenderMode(com.lumina.engine.RenderMode.PASSTHROUGH)
 
         verify { mockBridge.setRenderMode(any()) }
     }
