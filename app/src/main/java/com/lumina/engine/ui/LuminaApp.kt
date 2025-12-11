@@ -44,6 +44,7 @@ import com.lumina.engine.ui.components.IntentSummaryCard
 import com.lumina.engine.ui.components.QuickActionButton
 import com.lumina.engine.ui.components.VideoEditorCard
 import com.lumina.engine.ui.components.ErrorBanner
+import com.lumina.engine.ModelDownloader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,224 +94,88 @@ fun LuminaApp(
         }
     }
 
+    val modelDownloader = remember { ModelDownloader(context) }
+
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF0D1B2A),
-                            Color(0xFF1B263B),
-                            Color(0xFF415A77)
-                        )
-                    )
-                )
+                .background(Color.Black)
                 .padding(padding)
                 .systemBarsPadding()
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        logoBitmap?.let {
-                            Image(
-                                bitmap = it.asImageBitmap(),
-                                contentDescription = "Lumina logo",
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-                            )
-                            Spacer(Modifier.width(10.dp))
-                        }
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = "Lumina Virtual Studio",
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleSmall
-                            )
-                            Text(
-                                text = "Realtime camera + AI",
-                                color = Color.White.copy(alpha = 0.7f),
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
+            // Full-screen camera preview with minimalist UI overlays
+            CameraPreviewArea(
+                cameraController = cameraController,
+                nativeEngine = nativeBridge as? NativeEngine,
+                onMessage = { msg, isError ->
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = msg,
+                            withDismissAction = true,
+                            duration = if (isError) SnackbarDuration.Long else SnackbarDuration.Short
+                        )
                     }
-
-                    GlassyStatusIndicator(
-                        status = statusMessage,
-                        processingState = luminaState.processingState,
-                        modifier = Modifier
-                    )
+                },
+                onVideoSaved = { uriString ->
+                    lastVideoUri = uriString
+                    trimStatus = "Video ready to edit"
                 }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Adaptive color",
-                        color = Color.White.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Switch(
-                        checked = dynamicTheme,
-                        onCheckedChange = { luminaViewModel.setDynamicTheme(it) }
-                    )
+                ,
+                onRequestModelDownload = {
+                    scope.launch { modelDownloader.ensureModelAvailable() }
                 }
+            )
 
-                if (luminaState.processingState == ProcessingState.ERROR) {
-                    Spacer(Modifier.height(8.dp))
-                    ErrorBanner(message = statusMessage.ifBlank { "Something went wrong" })
-                }
+            // The ModelDownloader sits above the preview so we can start it
+            val modelState by modelDownloader.state.collectAsState(initial = com.lumina.engine.ModelDownloader.DownloadState.Idle)
 
-                if (isProcessing) {
-                    Spacer(Modifier.height(8.dp))
+            // Start the model download on first compose
+            LaunchedEffect(modelDownloader) {
+                modelDownloader.ensureModelAvailable()
+            }
+
+            // Show a subtle model download indicator at top
+            when (modelState) {
+                is com.lumina.engine.ModelDownloader.DownloadState.Checking -> {
                     LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Color(0xFF66D9FF),
-                        trackColor = Color.White.copy(alpha = 0.15f)
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth(),
+                        color = Color(0xFF66D9FF)
                     )
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                IntentSummaryCard(intent = luminaState.currentIntent)
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                GlassyRenderModeSelector(
-                    currentMode = luminaState.renderMode,
-                    onModeSelected = { mode -> luminaViewModel.setRenderMode(mode) }
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                GlassyContainer(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    params = GlassmorphicParams(
-                        transparency = 0.3f,
-                        cornerRadius = 24f
-                    )
-                ) {
-                    CameraPreviewArea(
-                        cameraController = cameraController,
-                        nativeEngine = nativeBridge as? NativeEngine,
-                        onMessage = { msg, isError ->
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = msg,
-                                    withDismissAction = true,
-                                    duration = if (isError) SnackbarDuration.Long else SnackbarDuration.Short
-                                )
-                            }
-                        },
-                        onVideoSaved = { uriString ->
-                            lastVideoUri = uriString
-                            trimStatus = "Video ready to edit"
-                        }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                VideoEditorCard(
-                    lastVideoUri = lastVideoUri,
-                    isTrimming = isTrimming,
-                    status = trimStatus,
-                    onTrim = { startMs, endMs ->
-                        if (lastVideoUri.isBlank()) {
-                            trimStatus = "No video available"
-                            return@VideoEditorCard
-                        }
-                        isTrimming = true
-                        trimStatus = "Trimming..."
-                        scope.launch {
-                            val result = VideoEditor(context = context).trimVideo(Uri.parse(lastVideoUri), startMs, endMs)
-                            result.onSuccess { uri ->
-                                lastVideoUri = uri.toString()
-                                trimStatus = "Trimmed clip saved"
-                            }.onFailure { e ->
-                                trimStatus = "Trim failed: ${e.message}"
-                            }
-                            isTrimming = false
-                        }
-                    },
-                    onClearStatus = { trimStatus = "" },
-                    onStatus = { trimStatus = it },
-                    onPlay = { uriString ->
-                        runCatching {
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(Uri.parse(uriString), "video/*")
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(intent)
-                        }.onFailure { e -> trimStatus = "Open failed: ${e.message}" }
-                    },
-                    onShare = { uriString ->
-                        runCatching {
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "video/*"
-                                putExtra(Intent.EXTRA_STREAM, Uri.parse(uriString))
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(Intent.createChooser(intent, "Share video"))
-                        }.onFailure { e -> trimStatus = "Share failed: ${e.message}" }
+                is com.lumina.engine.ModelDownloader.DownloadState.Downloading -> {
+                    val progress = (modelState as com.lumina.engine.ModelDownloader.DownloadState.Downloading).progress
+                    Column(modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp)) {
+                        Text(
+                            text = "Downloading model... ${(progress * 100).toInt()}%",
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                        LinearProgressIndicator(
+                            progress = progress,
+                            modifier = Modifier.fillMaxWidth(0.6f).height(6.dp)
+                        )
                     }
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                GlassyInputBar(
-                    value = userInput,
-                    onValueChange = { luminaViewModel.setUserInput(it) },
-                    onSend = {
-                        luminaViewModel.processUserInput(userInput)
-                        luminaViewModel.setUserInput("")
-                    },
-                    isProcessing = isProcessing,
-                    placeholder = "Describe your vision..."
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    QuickActionButton(
-                        label = "Dreamy",
-                        onClick = { luminaViewModel.processUserInput("Make it look dreamy with bloom") }
-                    )
-                    QuickActionButton(
-                        label = "Depth",
-                        onClick = { luminaViewModel.setRenderMode(RenderMode.DEPTH_MAP) }
-                    )
-                    QuickActionButton(
-                        label = "Blur",
-                        onClick = { luminaViewModel.processUserInput("Add subtle blur effect") }
-                    )
-                    QuickActionButton(
-                        label = "Reset",
-                        onClick = {
-                            luminaViewModel.clearEffects()
-                            luminaViewModel.setRenderMode(RenderMode.PASSTHROUGH)
-                        }
+                }
+                is com.lumina.engine.ModelDownloader.DownloadState.Error -> {
+                    val message = (modelState as com.lumina.engine.ModelDownloader.DownloadState.Error).message
+                    Text(
+                        text = "Model download failed: $message",
+                        color = Color.Red,
+                        modifier = Modifier.align(Alignment.TopCenter).padding(8.dp)
                     )
                 }
+                is com.lumina.engine.ModelDownloader.DownloadState.Completed -> {
+                    Text(
+                        text = "AI model ready",
+                        color = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.align(Alignment.TopCenter).padding(8.dp)
+                    )
+                }
+                else -> Unit
             }
         }
     }

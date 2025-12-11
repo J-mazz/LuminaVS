@@ -35,7 +35,7 @@ class CameraController(private val context: Context) {
         private const val TAG = "CameraController"
     }
 
-    private val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+    private val cameraProviderFuture by lazy { ProcessCameraProvider.getInstance(context) }
 
     private var camera: Camera? = null
     private var preview: Preview? = null
@@ -225,5 +225,20 @@ class CameraController(private val context: Context) {
         imageAnalysis?.clearAnalyzer()
         val provider = cameraProviderFuture.get()
         provider.unbindAll()
+    }
+
+    /** Returns true if device camera has a flash unit available */
+    fun hasFlashUnit(): Boolean {
+        return camera?.cameraInfo?.hasFlashUnit() ?: false
+    }
+
+    /** Enables or disables the torch/flashlight. */
+    fun setTorch(enabled: Boolean): Result<Unit> {
+        return try {
+            camera?.cameraControl?.enableTorch(enabled)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

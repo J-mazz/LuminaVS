@@ -142,6 +142,8 @@ dependencies {
 
     // Settings persistence
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+    // Background job scheduling for model download
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
@@ -150,6 +152,8 @@ dependencies {
     testImplementation("app.cash.turbine:turbine:0.13.0")
     testImplementation("com.google.truth:truth:1.1.3")
     testImplementation("org.robolectric:robolectric:4.10.3")
+    testImplementation("androidx.test:core:1.5.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.10.0")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
     
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

@@ -3,14 +3,15 @@ package com.lumina.engine.ui.components
 import android.graphics.SurfaceTexture
 import android.view.Surface
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,7 +39,8 @@ fun CameraPreviewArea(
     cameraController: CameraController,
     nativeEngine: INativeEngine? = null,
     onMessage: (String, Boolean) -> Unit,
-    onVideoSaved: (String) -> Unit = {}
+    onVideoSaved: (String) -> Unit = {},
+    onRequestModelDownload: () -> Unit = {}
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -143,11 +145,10 @@ fun CameraPreviewArea(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
+                .fillMaxSize()
                 .onSizeChanged { previewSize = it }
                 .pointerInput(Unit) {
                     detectTransformGestures { _, _, zoomChange, _ ->
@@ -164,96 +165,119 @@ fun CameraPreviewArea(
                 },
             factory = { previewView }
         )
+        // Top-right overflow menu
+        var showMenu by remember { mutableStateOf(false) }
+        var adaptiveLightingEnabled by remember { mutableStateOf(false) }
+        var flashlightEnabled by remember { mutableStateOf(false) }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            FilledTonalButton(onClick = {
-                cameraController.takePhoto { result ->
-                    lastMessage = result.fold(
-                        onSuccess = { uri -> if (uri.isNotBlank()) "Saved photo: $uri" else "Photo saved" },
-                        onFailure = { "Photo failed: ${it.message}" }
-                    )
-                    onMessage(lastMessage, lastMessage.contains("failed", ignoreCase = true))
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {}
+
+            // Overflow menu in top-right
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+            ) {
+                IconButton(
+                    onClick = { showMenu = !showMenu },
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Menu")
                 }
-            }) {
-                Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = "Capture photo")
-                Spacer(Modifier.width(8.dp))
-                Text("Photo")
-            }
 
-            FilledTonalButton(onClick = {
-                if (isRecording) {
-                    cameraController.stopRecording()
-                    isRecording = false
-                    lastMessage = "Recording stopped"
-                    onMessage(lastMessage, false)
-                } else {
-                    cameraController.startRecording { event ->
-                        when (event) {
-                            is androidx.camera.video.VideoRecordEvent.Start -> {
-                                isRecording = true
-                                lastMessage = "Recording..."
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    DropdownMenuItem(text = { Text("Switch Camera") }, onClick = {
+                        val analyzer = if (activeSurface == null && nativeEngine != null) vulkanAnalyzer else glesAnalyzer
+                        cameraController.switchCamera(lifecycleOwner, previewView, activeSurface, analyzer)
+                            .onSuccess {
+                                lastMessage = "Switched camera"
                                 onMessage(lastMessage, false)
+                                showMenu = false
                             }
-                            is androidx.camera.video.VideoRecordEvent.Finalize -> {
-                                isRecording = false
-                                lastMessage = if (event.error == androidx.camera.video.VideoRecordEvent.Finalize.ERROR_NONE) {
-                                    val uriString = event.outputResults.outputUri.toString()
-                                    onVideoSaved(uriString)
-                                    "Saved video: $uriString"
-                                } else {
-                                    "Recording error: ${event.error}"
+                            .onFailure {
+                                lastMessage = "Camera switch failed: ${it.message ?: "unknown"}"
+                                onMessage(lastMessage, true)
+                                showMenu = false
+                            }
+                    })
+                    DropdownMenuItem(text = { Text("Adaptive Lighting: ${if (adaptiveLightingEnabled) "On" else "Off"}") }, onClick = { adaptiveLightingEnabled = !adaptiveLightingEnabled })
+                    DropdownMenuItem(text = { Text("Download model") }, onClick = { onRequestModelDownload(); showMenu = false })
+                    DropdownMenuItem(text = { Text("Flash: ${if (flashlightEnabled) "On" else "Off"}") }, onClick = {
+                        if (cameraController.hasFlashUnit()) {
+                            cameraController.setTorch(!flashlightEnabled)
+                                .onSuccess {
+                                    flashlightEnabled = !flashlightEnabled
+                                    lastMessage = "Flash ${if (flashlightEnabled) "enabled" else "disabled"}"
+                                    onMessage(lastMessage, false)
                                 }
-                                onMessage(lastMessage, event.error != androidx.camera.video.VideoRecordEvent.Finalize.ERROR_NONE)
-                            }
+                                .onFailure {
+                                    lastMessage = "Failed to set flash: ${it.message ?: "unknown"}"
+                                    onMessage(lastMessage, true)
+                                }
+                        } else {
+                            lastMessage = "No flash available on device"
+                            onMessage(lastMessage, true)
                         }
-                    }
+                        showMenu = false
+                    })
+                    DropdownMenuItem(text = { Text("Settings") }, onClick = { /* open settings */ showMenu = false })
+                    DropdownMenuItem(text = { Text("Quit") }, onClick = { /* exit app */ showMenu = false })
                 }
-            }) {
-                Icon(
-                    imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
-                    contentDescription = "Record"
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(if (isRecording) "Stop" else "Record")
             }
 
-            FilledTonalButton(onClick = {
-                val analyzer = if (activeSurface == null && nativeEngine != null) {
-                    // Vulkan path: persistent analyzer
-                    vulkanAnalyzer
-                } else {
-                    glesAnalyzer
-                }
-                cameraController.switchCamera(lifecycleOwner, previewView, activeSurface, analyzer)
-                    .onSuccess {
-                        lastMessage = "Switched camera"
-                        onMessage(lastMessage, false)
+            // Minimal floating capture/record button
+            FloatingActionButton(
+                onClick = {
+                    cameraController.takePhoto { result ->
+                        lastMessage = result.fold(
+                            onSuccess = { uri -> if (uri.isNotBlank()) "Saved photo: $uri" else "Photo saved" },
+                            onFailure = { "Photo failed: ${it.message}" }
+                        )
+                        onMessage(lastMessage, lastMessage.contains("failed", ignoreCase = true))
                     }
-                    .onFailure {
-                        lastMessage = "Camera switch failed: ${it.message ?: "unknown"}"
-                        onMessage(lastMessage, true)
-                    }
-            }) {
-                Icon(imageVector = Icons.Default.Cameraswitch, contentDescription = "Switch camera")
-                Spacer(Modifier.width(8.dp))
-                Text("Switch")
-            }
-        }
-
-        if (lastMessage.isNotBlank()) {
-            Text(
-                text = lastMessage,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 88.dp)
+            ) {
+                Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = "Capture photo")
+            }
+
+            // Query bar (minimalist) at bottom
+            var queryText by remember { mutableStateOf("") }
+            OutlinedTextField(
+                value = queryText,
+                onValueChange = { queryText = it },
+                placeholder = { Text("Ask Lumina... (e.g., brighten skin tones)") },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        if (queryText.isNotBlank()) {
+                            onMessage(queryText, false)
+                            queryText = ""
+                        }
+                    }) {
+                        Icon(imageVector = Icons.Default.Send, contentDescription = "Send")
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(12.dp)
+                    .fillMaxWidth(0.9f)
             )
+
+            if (lastMessage.isNotBlank()) {
+                Text(
+                    text = lastMessage,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }
